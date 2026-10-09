@@ -1,0 +1,134 @@
+import Link from "next/link";
+import { startNewGameAction } from "@/app/actions";
+import { ReversiBoard, StoneCounts } from "@/components/ReversiBoard";
+import { UndoButton } from "@/components/UndoButton";
+import { requireUserId } from "@/lib/auth/session";
+import { getCurrentGame, listFinishedGames, listTasks, type TaskListItem } from "@/lib/game/service";
+import { BOARD_SIZE } from "@/lib/reversi/board";
+
+const TOTAL = BOARD_SIZE * BOARD_SIZE;
+
+export default async function HomePage() {
+  const userId = await requireUserId();
+  const [game, tasks] = await Promise.all([getCurrentGame(userId), listTasks(userId)]);
+
+  return (
+    <div className="space-y-8">
+      {game ? (
+        <section className="space-y-3">
+          <div className="flex items-end justify-between">
+            <h1 className="text-lg font-bold">現在のゲーム</h1>
+            <p className="text-sm text-ink-soft">
+              {game.moves.length} / {TOTAL} 手
+            </p>
+          </div>
+          <div
+            className="h-1.5 overflow-hidden rounded-full bg-line"
+            role="progressbar"
+            aria-valuenow={game.moves.length}
+            aria-valuemax={TOTAL}
+            aria-label="ゲームの進行状況"
+          >
+            <div className="h-full bg-felt" style={{ width: `${(game.moves.length / TOTAL) * 100}%` }} />
+          </div>
+          <ReversiBoard board={game.board} lastMove={game.lastMove} />
+          <StoneCounts
+            white={game.summary.white}
+            black={game.summary.black}
+            empty={TOTAL - game.moves.length}
+          />
+          {game.lastMove && (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-ink-soft">
+              <p>
+                直前: 「{game.lastMove.taskTitle}」
+                {game.lastMove.result === "achieved" ? "達成（白）" : "未達成（黒）"}
+              </p>
+              {game.canUndo && <UndoButton description={game.lastMove.taskTitle} />}
+            </div>
+          )}
+        </section>
+      ) : (
+        <NoGame userId={userId} />
+      )}
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">タスク</h2>
+          <Link
+            href="/tasks/new"
+            className="rounded-md bg-felt px-3 py-1.5 text-sm font-bold text-white hover:bg-felt-dark"
+          >
+            ＋ 追加
+          </Link>
+        </div>
+        <TaskList tasks={tasks} canJudge={game !== null} />
+      </section>
+    </div>
+  );
+}
+
+async function NoGame({ userId }: { userId: string }) {
+  const [latest] = await listFinishedGames(userId);
+  return (
+    <section className="space-y-3 rounded-lg border border-line bg-card p-5 text-center">
+      <p className="font-bold">{latest ? "ゲームが終了しました" : "ようこそ！"}</p>
+      <p className="text-sm text-ink-soft">
+        {latest
+          ? "新しいゲームを始めると、空の盤面からスタートします。タスクは引き継がれます。"
+          : "タスクを登録して、ゲームを始めましょう。"}
+      </p>
+      <form action={startNewGameAction}>
+        <button
+          type="submit"
+          className="rounded-md bg-felt px-5 py-2.5 font-bold text-white hover:bg-felt-dark"
+        >
+          新しいゲームを始める
+        </button>
+      </form>
+      {latest && (
+        <Link href={`/games/${latest.id}`} className="inline-block text-sm underline underline-offset-2">
+          前回の結果を見る
+        </Link>
+      )}
+    </section>
+  );
+}
+
+function TaskList({ tasks, canJudge }: { tasks: TaskListItem[]; canJudge: boolean }) {
+  if (tasks.length === 0) {
+    return <p className="text-sm text-ink-soft">まだタスクがありません。「＋ 追加」から登録しましょう。</p>;
+  }
+  const sorted = [...tasks].sort((a, b) => Number(b.judgeable) - Number(a.judgeable));
+
+  return (
+    <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card">
+      {sorted.map((t) => (
+        <li key={t.id} className={`flex items-center gap-3 px-4 py-3 ${t.judgeable ? "" : "text-ink-soft"}`}>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-bold">{t.title}</p>
+            <p className="text-xs">
+              <span className="mr-2 rounded bg-paper px-1.5 py-0.5">
+                {t.recurrenceType === "once" ? "単発" : "毎日"}
+              </span>
+              {t.reason}
+            </p>
+          </div>
+          <Link
+            href={`/tasks/${t.id}/edit`}
+            className="shrink-0 text-sm text-ink-soft underline underline-offset-2"
+          >
+            編集
+          </Link>
+          {t.judgeable && canJudge && (
+            <Link
+              href={`/play/${t.id}`}
+              className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-sm font-bold text-white hover:opacity-90"
+            >
+              判定する
+            </Link>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}

@@ -1,0 +1,91 @@
+// use prisma-8
+// task-reversi data contract
+// userId は Auth.js のセッションから得る識別子（例: "github:12345"）。User テーブルは持たない。
+// 盤面そのものは保存せず、StonePlacement を sequenceNumber 順に再生して再構築する。
+// 日付のみの値は DateString（"YYYY-MM-DD"のJST暦日文字列）を使う。bare型 Date は
+// グローバル Temporal が無い Node では実行時エラーになるため使わない（asa-stamp と同じ理由）。
+
+enum RecurrenceType {
+  @@type("pg/text@1")
+  once  = "once"
+  daily = "daily"
+}
+
+enum GameStatus {
+  @@type("pg/text@1")
+  in_progress = "in_progress"
+  finished    = "finished"
+}
+
+enum AttemptResult {
+  @@type("pg/text@1")
+  achieved = "achieved"
+  missed   = "missed"
+}
+
+enum StoneColor {
+  @@type("pg/text@1")
+  white = "white"
+  black = "black"
+}
+
+model Task {
+  id             String         @id @default(uuid())
+  userId         String
+  title          String
+  recurrenceType RecurrenceType
+  active         Boolean        @default(true)
+  createdAt      TimestamptzString @default(now())
+  attempts       TaskAttempt[]
+
+  @@index([userId])
+}
+
+model Game {
+  id         String     @id @default(uuid())
+  userId     String
+  status     GameStatus @default(in_progress)
+  // 直前の操作が取り消しだったか。取り消しは連続1回までに制限する。
+  undoUsed   Boolean    @default(false)
+  startedAt  TimestamptzString @default(now())
+  finishedAt TimestamptzString?
+  attempts   TaskAttempt[]
+  placements StonePlacement[]
+
+  @@index([userId])
+  // 進行中のゲームは1ユーザーにつき1つだけ。
+  @@index([userId], unique: true, where: "(status = 'in_progress')", name: "game_one_in_progress")
+}
+
+// タスクを判定した1回ごとの記録。必ず StonePlacement と同じトランザクションで作成・削除する。
+model TaskAttempt {
+  id          String        @id @default(uuid())
+  game        Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameId      String
+  task        Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId      String
+  result      AttemptResult
+  // 判定したJST暦日。繰り返しタスクの「1日1回」判定に使う。
+  attemptedOn DateString
+  createdAt   TimestamptzString @default(now())
+  placement   StonePlacement?
+
+  @@unique([taskId, attemptedOn])
+}
+
+model StonePlacement {
+  id             String      @id @default(uuid())
+  game           Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameId         String
+  taskAttempt    TaskAttempt @relation(fields: [taskAttemptId], references: [id], onDelete: Cascade)
+  taskAttemptId  String      @unique
+  color          StoneColor
+  row            Int
+  col            Int
+  sequenceNumber Int
+  createdAt      TimestamptzString @default(now())
+
+  // 同じマスへの二重配置・同時操作による手順の衝突をDB側で防ぐ。
+  @@unique([gameId, row, col])
+  @@unique([gameId, sequenceNumber])
+}

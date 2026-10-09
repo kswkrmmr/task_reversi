@@ -1,0 +1,745 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.Game",
+    "label": "Create table \"Game\"",
+    "summary": "Creates table \"Game\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Game"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Game\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Game\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Game\"",
+        "sql": "CREATE TABLE \"public\".\"Game\" (\n  \"finishedAt\" timestamptz,\n  \"id\" text NOT NULL,\n  \"startedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"status\" text DEFAULT 'in_progress' NOT NULL,\n  \"undoUsed\" bool DEFAULT false NOT NULL,\n  \"userId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Game_status_check_ad2a986f\" CHECK (\"status\" IN ('in_progress', 'finished'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Game\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Game\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.StonePlacement",
+    "label": "Create table \"StonePlacement\"",
+    "summary": "Creates table \"StonePlacement\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "StonePlacement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"StonePlacement\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"StonePlacement\"",
+        "sql": "CREATE TABLE \"public\".\"StonePlacement\" (\n  \"col\" int4 NOT NULL,\n  \"color\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"gameId\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"row\" int4 NOT NULL,\n  \"sequenceNumber\" int4 NOT NULL,\n  \"taskAttemptId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"StonePlacement_color_check_f11ed0df\" CHECK (\"color\" IN ('white', 'black'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"StonePlacement\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Task",
+    "label": "Create table \"Task\"",
+    "summary": "Creates table \"Task\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Task"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Task\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Task\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Task\"",
+        "sql": "CREATE TABLE \"public\".\"Task\" (\n  \"active\" bool DEFAULT true NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"recurrenceType\" text NOT NULL,\n  \"title\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Task_recurrenceType_check_8ffdcf6f\" CHECK (\"recurrenceType\" IN ('once', 'daily'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Task\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Task\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.TaskAttempt",
+    "label": "Create table \"TaskAttempt\"",
+    "summary": "Creates table \"TaskAttempt\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "TaskAttempt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"TaskAttempt\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"TaskAttempt\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"TaskAttempt\"",
+        "sql": "CREATE TABLE \"public\".\"TaskAttempt\" (\n  \"attemptedOn\" date NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"gameId\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"result\" text NOT NULL,\n  \"taskId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"TaskAttempt_result_check_700a35c9\" CHECK (\"result\" IN ('achieved', 'missed'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"TaskAttempt\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"TaskAttempt\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.StonePlacement.StonePlacement_taskAttemptId_key",
+    "label": "Add unique constraint on \"StonePlacement\" (taskAttemptId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "StonePlacement_taskAttemptId_key",
+        "table": "StonePlacement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"StonePlacement_taskAttemptId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_taskAttemptId_key",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"StonePlacement_taskAttemptId_key\"",
+        "sql": "ALTER TABLE \"public\".\"StonePlacement\" ADD CONSTRAINT \"StonePlacement_taskAttemptId_key\" UNIQUE (\"taskAttemptId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"StonePlacement_taskAttemptId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_taskAttemptId_key",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.StonePlacement.StonePlacement_gameId_row_col_key",
+    "label": "Add unique constraint on \"StonePlacement\" (gameId, row, col)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "StonePlacement_gameId_row_col_key",
+        "table": "StonePlacement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"StonePlacement_gameId_row_col_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_gameId_row_col_key",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"StonePlacement_gameId_row_col_key\"",
+        "sql": "ALTER TABLE \"public\".\"StonePlacement\" ADD CONSTRAINT \"StonePlacement_gameId_row_col_key\" UNIQUE (\"gameId\", \"row\", \"col\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"StonePlacement_gameId_row_col_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_gameId_row_col_key",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.StonePlacement.StonePlacement_gameId_sequenceNumber_key",
+    "label": "Add unique constraint on \"StonePlacement\" (gameId, sequenceNumber)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "StonePlacement_gameId_sequenceNumber_key",
+        "table": "StonePlacement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"StonePlacement_gameId_sequenceNumber_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_gameId_sequenceNumber_key",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"StonePlacement_gameId_sequenceNumber_key\"",
+        "sql": "ALTER TABLE \"public\".\"StonePlacement\" ADD CONSTRAINT \"StonePlacement_gameId_sequenceNumber_key\" UNIQUE (\"gameId\", \"sequenceNumber\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"StonePlacement_gameId_sequenceNumber_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_gameId_sequenceNumber_key",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.TaskAttempt.TaskAttempt_taskId_attemptedOn_key",
+    "label": "Add unique constraint on \"TaskAttempt\" (taskId, attemptedOn)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "TaskAttempt_taskId_attemptedOn_key",
+        "table": "TaskAttempt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"TaskAttempt_taskId_attemptedOn_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "TaskAttempt_taskId_attemptedOn_key",
+          "public",
+          "\"public\".\"TaskAttempt\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"TaskAttempt_taskId_attemptedOn_key\"",
+        "sql": "ALTER TABLE \"public\".\"TaskAttempt\" ADD CONSTRAINT \"TaskAttempt_taskId_attemptedOn_key\" UNIQUE (\"taskId\", \"attemptedOn\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"TaskAttempt_taskId_attemptedOn_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "TaskAttempt_taskId_attemptedOn_key",
+          "public",
+          "\"public\".\"TaskAttempt\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Game.Game_userId_idx_a489d58a",
+    "label": "Create index \"Game_userId_idx_a489d58a\" on \"Game\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Game_userId_idx_a489d58a",
+        "table": "Game"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Game_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Game_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Game_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"Game_userId_idx_a489d58a\" ON \"public\".\"Game\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Game_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Game_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Game.game_one_in_progress_19c3c9fe",
+    "label": "Create index \"game_one_in_progress_19c3c9fe\" on \"Game\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "game_one_in_progress_19c3c9fe",
+        "table": "Game"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"game_one_in_progress_19c3c9fe\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"game_one_in_progress_19c3c9fe\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"game_one_in_progress_19c3c9fe\"",
+        "sql": "CREATE UNIQUE INDEX \"game_one_in_progress_19c3c9fe\" ON \"public\".\"Game\" (\"userId\") WHERE ((status = 'in_progress'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"game_one_in_progress_19c3c9fe\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"game_one_in_progress_19c3c9fe\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.StonePlacement.StonePlacement_gameId_idx_6cdb47f8",
+    "label": "Create index \"StonePlacement_gameId_idx_6cdb47f8\" on \"StonePlacement\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "StonePlacement_gameId_idx_6cdb47f8",
+        "table": "StonePlacement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"StonePlacement_gameId_idx_6cdb47f8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"StonePlacement_gameId_idx_6cdb47f8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"StonePlacement_gameId_idx_6cdb47f8\"",
+        "sql": "CREATE INDEX \"StonePlacement_gameId_idx_6cdb47f8\" ON \"public\".\"StonePlacement\" (\"gameId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"StonePlacement_gameId_idx_6cdb47f8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"StonePlacement_gameId_idx_6cdb47f8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Task.Task_userId_idx_a489d58a",
+    "label": "Create index \"Task_userId_idx_a489d58a\" on \"Task\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Task_userId_idx_a489d58a",
+        "table": "Task"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Task_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Task_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Task_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"Task_userId_idx_a489d58a\" ON \"public\".\"Task\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Task_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Task_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.TaskAttempt.TaskAttempt_gameId_idx_6cdb47f8",
+    "label": "Create index \"TaskAttempt_gameId_idx_6cdb47f8\" on \"TaskAttempt\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "TaskAttempt_gameId_idx_6cdb47f8",
+        "table": "TaskAttempt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"TaskAttempt_gameId_idx_6cdb47f8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"TaskAttempt_gameId_idx_6cdb47f8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"TaskAttempt_gameId_idx_6cdb47f8\"",
+        "sql": "CREATE INDEX \"TaskAttempt_gameId_idx_6cdb47f8\" ON \"public\".\"TaskAttempt\" (\"gameId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"TaskAttempt_gameId_idx_6cdb47f8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"TaskAttempt_gameId_idx_6cdb47f8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.TaskAttempt.TaskAttempt_taskId_idx_4965c936",
+    "label": "Create index \"TaskAttempt_taskId_idx_4965c936\" on \"TaskAttempt\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "TaskAttempt_taskId_idx_4965c936",
+        "table": "TaskAttempt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"TaskAttempt_taskId_idx_4965c936\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"TaskAttempt_taskId_idx_4965c936\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"TaskAttempt_taskId_idx_4965c936\"",
+        "sql": "CREATE INDEX \"TaskAttempt_taskId_idx_4965c936\" ON \"public\".\"TaskAttempt\" (\"taskId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"TaskAttempt_taskId_idx_4965c936\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"TaskAttempt_taskId_idx_4965c936\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.StonePlacement.StonePlacement_gameId_fkey",
+    "label": "Add foreign key \"StonePlacement_gameId_fkey\" on \"StonePlacement\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "StonePlacement_gameId_fkey",
+        "table": "StonePlacement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"StonePlacement_gameId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_gameId_fkey",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"StonePlacement_gameId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"StonePlacement\"\nADD CONSTRAINT \"StonePlacement_gameId_fkey\"\nFOREIGN KEY (\"gameId\")\nREFERENCES \"public\".\"Game\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"StonePlacement_gameId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_gameId_fkey",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.StonePlacement.StonePlacement_taskAttemptId_fkey",
+    "label": "Add foreign key \"StonePlacement_taskAttemptId_fkey\" on \"StonePlacement\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "StonePlacement_taskAttemptId_fkey",
+        "table": "StonePlacement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"StonePlacement_taskAttemptId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_taskAttemptId_fkey",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"StonePlacement_taskAttemptId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"StonePlacement\"\nADD CONSTRAINT \"StonePlacement_taskAttemptId_fkey\"\nFOREIGN KEY (\"taskAttemptId\")\nREFERENCES \"public\".\"TaskAttempt\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"StonePlacement_taskAttemptId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "StonePlacement_taskAttemptId_fkey",
+          "public",
+          "\"public\".\"StonePlacement\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.TaskAttempt.TaskAttempt_gameId_fkey",
+    "label": "Add foreign key \"TaskAttempt_gameId_fkey\" on \"TaskAttempt\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "TaskAttempt_gameId_fkey",
+        "table": "TaskAttempt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"TaskAttempt_gameId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "TaskAttempt_gameId_fkey",
+          "public",
+          "\"public\".\"TaskAttempt\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"TaskAttempt_gameId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"TaskAttempt\"\nADD CONSTRAINT \"TaskAttempt_gameId_fkey\"\nFOREIGN KEY (\"gameId\")\nREFERENCES \"public\".\"Game\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"TaskAttempt_gameId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "TaskAttempt_gameId_fkey",
+          "public",
+          "\"public\".\"TaskAttempt\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.TaskAttempt.TaskAttempt_taskId_fkey",
+    "label": "Add foreign key \"TaskAttempt_taskId_fkey\" on \"TaskAttempt\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "TaskAttempt_taskId_fkey",
+        "table": "TaskAttempt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"TaskAttempt_taskId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "TaskAttempt_taskId_fkey",
+          "public",
+          "\"public\".\"TaskAttempt\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"TaskAttempt_taskId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"TaskAttempt\"\nADD CONSTRAINT \"TaskAttempt_taskId_fkey\"\nFOREIGN KEY (\"taskId\")\nREFERENCES \"public\".\"Task\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"TaskAttempt_taskId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "TaskAttempt_taskId_fkey",
+          "public",
+          "\"public\".\"TaskAttempt\""
+        ]
+      }
+    ]
+  }
+]

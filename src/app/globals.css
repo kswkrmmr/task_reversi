@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  --color-paper: #f6f1e7;
+  --color-card: #fffdf8;
+  --color-line: #e2d8c5;
+  --color-ink: #2b2a26;
+  --color-ink-soft: #6b665c;
+  --color-felt: #2f7a4f;
+  --color-felt-dark: #23603d;
+  --color-accent: #c0662b;
+  --color-danger: #b3362f;
+}
+
+@theme inline {
+  --color-paper: var(--color-paper);
+  --color-card: var(--color-card);
+  --color-line: var(--color-line);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-felt: var(--color-felt);
+  --color-felt-dark: var(--color-felt-dark);
+  --color-accent: var(--color-accent);
+  --color-danger: var(--color-danger);
+  --font-sans: var(--font-zen-maru);
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.stone-white {
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f1efe9 55%, #cfcac0 100%);
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.35);
+}
+
+.stone-black {
+  background: radial-gradient(circle at 35% 30%, #5b5b5b 0%, #1d1d1d 60%, #000 100%);
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.45);
+}
+
+@keyframes stone-drop {
+  0% { transform: scale(1.5); opacity: 0; }
+  70% { transform: scale(0.92); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.stone-drop {
+  animation: stone-drop 260ms ease-out;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+.hint-pulse {
+  animation: hint-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stone-drop, .hint-pulse { animation: none; }
+}
