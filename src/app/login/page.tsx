@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth, isDevLoginEnabled, signIn } from "@/auth";
+import { auth, isDevLoginEnabled, oauthProviders, signIn } from "@/auth";
 import { Stone } from "@/components/ReversiBoard";
 
 export default async function LoginPage() {
@@ -21,19 +21,31 @@ export default async function LoginPage() {
         </p>
       </div>
 
-      <form
-        action={async () => {
-          "use server";
-          await signIn("github", { redirectTo: "/" });
-        }}
-      >
-        <button
-          type="submit"
-          className="w-full rounded-md bg-ink px-4 py-3 font-bold text-white hover:opacity-90"
-        >
-          GitHubでログイン
-        </button>
-      </form>
+      <div className="space-y-3">
+        {oauthProviders.map((p) => (
+          <form
+            key={p.id}
+            action={async () => {
+              "use server";
+              await signIn(p.id, { redirectTo: "/" });
+            }}
+          >
+            <button
+              type="submit"
+              className={`w-full rounded-md px-4 py-3 font-bold hover:opacity-90 ${
+                p.id === "github" ? "bg-ink text-white" : "border border-line bg-white text-ink"
+              }`}
+            >
+              {p.label}
+            </button>
+          </form>
+        ))}
+        <p className="text-center text-xs text-ink-soft">
+          ログインに使うのはアカウントの識別番号だけです。
+          <br />
+          メールアドレスやリポジトリなどの情報は取得しません。
+        </p>
+      </div>
 
       {isDevLoginEnabled && (
         <form

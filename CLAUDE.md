@@ -26,7 +26,11 @@
 ## 認証 (Auth.js v5)
 - JWTセッション・DBアダプタなし。アダプタなしだと Auth.js の `user.id` はサインインごとにランダムUUIDになるため、
   アプリのユーザーIDは jwt コールバックで `"<provider>:<providerAccountId>"`（例 `github:12345`）を作って保持している。
-- 本番は GitHub OAuth。`AUTH_DEV_LOGIN=true` かつ非productionのときだけ、名前だけで入れる開発用ログイン（`dev-login:<name>`）が有効。
+- 外部サービスへの許可範囲は最小限: GitHub はスコープなし（公開情報のみ）、Google は `openid` のみ。
+  メールアドレス・アイコンは要求せず、JWT からも削除している。アクセストークンは保存しない。ユーザーに説明済みの方針なので広げないこと。
+- クライアントIDが設定されているプロバイダだけログインボタンを出す（`oauthProviders`）。
+- 同じ人でも GitHub と Google では別ユーザー（`github:…` と `google:…`）。アカウント統合はしていない。
+- 本番は GitHub / Google OAuth。`AUTH_DEV_LOGIN=true` かつ非productionのときだけ、名前だけで入れる開発用ログイン（`dev-login:<name>`）が有効。
 
 ## テスト
 - `npm test` … 盤面・ルールのユニットテスト（DB不要）
@@ -43,7 +47,7 @@ asa-stamp の CLAUDE.md の注意点がそのまま当てはまる（`uuid()`、
 - DB: Vercel Marketplace の Neon（リソース名 `task-reversi-db`）。`DATABASE_URL` 等は Vercel 側に自動設定済み。
 - 本番DBへのマイグレーションは `DATABASE_URL_UNPOOLED` を使って `npx prisma db migrate` で適用する（pgbouncer 経由ではDDLを流さない）。
   本番の `db` ref はローカルの `migrations/app/refs/db.json` と共有しないため、本番適用時は `--advance-ref` を付けない。
-- 必要な環境変数（Production）: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`。開発用ログインは本番では無効。
+- 必要な環境変数（Production）: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`。開発用ログインは本番では無効。
 - **`.env.local` を作らない・残さないこと**（asa-stamp と同じ理由で、ローカルの開発サーバーが本番DBに繋がってしまう）。
   本番の接続情報が必要なときは `vercel env pull .env.vercel-prod.local --environment=production` で別名取得し、使い終わったら削除する。
 
