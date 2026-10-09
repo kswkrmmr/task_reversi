@@ -38,5 +38,14 @@ asa-stamp の CLAUDE.md の注意点がそのまま当てはまる（`uuid()`、
 加えて: `contract.prisma` の1行目に `// use prisma-8` が必要。実装前に `.claude/skills/prisma-8/` を確認すること。
 ローカルDBはポート **5434**（asa-stamp が 5433、ainote が 5432 を使用）。
 
+## デプロイ (Vercel)
+- 本番URL: https://task-reversi.vercel.app （Vercelプロジェクト `kswkrmmrs-projects/task-reversi`）
+- DB: Vercel Marketplace の Neon（リソース名 `task-reversi-db`）。`DATABASE_URL` 等は Vercel 側に自動設定済み。
+- 本番DBへのマイグレーションは `DATABASE_URL_UNPOOLED` を使って `npx prisma db migrate` で適用する（pgbouncer 経由ではDDLを流さない）。
+  本番の `db` ref はローカルの `migrations/app/refs/db.json` と共有しないため、本番適用時は `--advance-ref` を付けない。
+- 必要な環境変数（Production）: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`。開発用ログインは本番では無効。
+- **`.env.local` を作らない・残さないこと**（asa-stamp と同じ理由で、ローカルの開発サーバーが本番DBに繋がってしまう）。
+  本番の接続情報が必要なときは `vercel env pull .env.vercel-prod.local --environment=production` で別名取得し、使い終わったら削除する。
+
 ## MVPスコープ外
 オンライン対戦、ランキング、Discord連携、AIタスク提案、通知・リマインダー、複数手の取り消し、自動未達成判定、曜日別繰り返し、実績バッジ・連続達成ボーナス。
