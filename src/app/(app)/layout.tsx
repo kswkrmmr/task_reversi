@@ -34,7 +34,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             <p>ゲストで試用中です。</p>
             <form action={signOutAction}>
               <button type="submit" className="font-bold text-accent underline underline-offset-2">
-                ログインして記録を残す
+                ログインして始める
               </button>
             </form>
           </div>
