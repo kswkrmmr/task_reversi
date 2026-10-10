@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { startNewGameAction } from "@/app/actions";
 import { GameSummary } from "@/components/GameSummary";
+import { JudgmentList } from "@/components/JudgmentList";
 import { ReversiBoard } from "@/components/ReversiBoard";
 import { requireUserId } from "@/lib/auth/session";
 import { getCurrentGame, getGame } from "@/lib/game/service";
@@ -35,6 +36,7 @@ export default async function GameResultPage({ params }: PageProps<"/games/[id]"
       <p className="text-center text-xs text-ink-soft">
         反転があるため、盤面の石の数とタスクの達成数は一致しません。
       </p>
+      <JudgmentList judgments={game.judgments} />
       {current ? (
         <Link
           href="/board"

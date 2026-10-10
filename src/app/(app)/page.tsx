@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { NoGamePanel } from "@/components/NoGamePanel";
 import { Stone } from "@/components/ReversiBoard";
+import { ShowMoreTasks } from "@/components/ShowMoreTasks";
+import { TaskRows } from "@/components/TaskRows";
 import { requireUserId } from "@/lib/auth/session";
 import { getCurrentGame, listTasks, type TaskListItem } from "@/lib/game/service";
-import { describeDue } from "@/lib/game/rules";
 import { BOARD_SIZE } from "@/lib/reversi/board";
 
 const TOTAL = BOARD_SIZE * BOARD_SIZE;
@@ -49,20 +50,31 @@ export default async function TasksPage() {
             ＋ 追加
           </Link>
         </div>
-        <TaskList tasks={tasks} canJudge={game !== null} />
+        <TaskList tasks={tasks} canJudge={game !== null} currentGameId={game?.id ?? null} />
       </section>
     </div>
   );
 }
 
-function TaskList({ tasks, canJudge }: { tasks: TaskListItem[]; canJudge: boolean }) {
+function TaskList({
+  tasks,
+  canJudge,
+  currentGameId,
+}: {
+  tasks: TaskListItem[];
+  canJudge: boolean;
+  currentGameId: string | null;
+}) {
   if (tasks.length === 0) {
     return <p className="text-sm text-ink-soft">まだタスクがありません。「＋ 追加」から登録しましょう。</p>;
   }
   const now = new Date();
   const open = sortOpenTasks(tasks.filter((t) => t.category === "open"));
   const paused = tasks.filter((t) => t.category === "paused");
-  const judged = tasks.filter((t) => t.category === "judged");
+  // 判定済みは今のゲームで判定したものだけを新しい順に出す（前のゲームの分は履歴の結果画面で見られる）。
+  const judged = tasks
+    .filter((t) => t.category === "judged" && t.judgedGameId === currentGameId)
+    .sort((a, b) => (b.judgedAt ?? "").localeCompare(a.judgedAt ?? ""));
 
   return (
     <div className="space-y-3">
@@ -71,8 +83,12 @@ function TaskList({ tasks, canJudge }: { tasks: TaskListItem[]; canJudge: boolea
       ) : (
         <p className="text-sm text-ink-soft">判定できるタスクはありません。</p>
       )}
-      <FoldedTasks label="一時停止中のタスク" tasks={paused} now={now} />
-      <FoldedTasks label="判定済みのタスク" tasks={judged} now={now} />
+      <Folded label="一時停止中のタスク" count={paused.length}>
+        <TaskRows tasks={paused} canJudge={false} showReason={false} />
+      </Folded>
+      <Folded label="このゲームで判定済みのタスク" count={judged.length}>
+        <ShowMoreTasks tasks={judged} />
+      </Folded>
     </div>
   );
 }
@@ -88,72 +104,22 @@ function sortOpenTasks(tasks: TaskListItem[]): TaskListItem[] {
   });
 }
 
-function FoldedTasks({ label, tasks, now }: { label: string; tasks: TaskListItem[]; now: Date }) {
-  if (tasks.length === 0) return null;
+function Folded({
+  label,
+  count,
+  children,
+}: {
+  label: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  if (count === 0) return null;
   return (
     <details className="group">
       <summary className="cursor-pointer list-none text-sm text-ink-soft select-none [&::-webkit-details-marker]:hidden">
-        <span className="inline-block transition-transform group-open:rotate-90">▶</span> {label}（
-        {tasks.length}件）
+        <span className="inline-block transition-transform group-open:rotate-90">▶</span> {label}（{count}件）
       </summary>
-      <div className="mt-2">
-        <TaskRows tasks={tasks} canJudge={false} now={now} showReason={false} />
-      </div>
+      <div className="mt-2">{children}</div>
     </details>
-  );
-}
-
-function TaskRows({
-  tasks,
-  canJudge,
-  now,
-  showReason = true,
-}: {
-  tasks: TaskListItem[];
-  canJudge: boolean;
-  now: Date;
-  showReason?: boolean;
-}) {
-  return (
-    <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card">
-      {tasks.map((t) => {
-        const due = t.dueAt && t.category === "open" ? describeDue(t.dueAt, now) : null;
-        return (
-          <li key={t.id} className={`flex items-center gap-3 px-4 py-3 ${t.judgeable ? "" : "text-ink-soft"}`}>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-bold">{t.title}</p>
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                <span className="rounded bg-paper px-1.5 py-0.5">
-                  {t.recurrenceType === "once" ? "単発" : "毎日"}
-                </span>
-                {due && (
-                  <span className={due.overdue ? "font-bold text-danger" : ""}>{due.label}</span>
-                )}
-                {t.result && (
-                  <span className={t.result === "achieved" ? "font-bold text-felt" : ""}>
-                    {t.result === "achieved" ? "達成" : "未達成"}
-                  </span>
-                )}
-                {showReason && t.reason && <span>{t.reason}</span>}
-              </p>
-            </div>
-            <Link
-              href={`/tasks/${t.id}/edit`}
-              className="shrink-0 text-sm text-ink-soft underline underline-offset-2"
-            >
-              編集
-            </Link>
-            {t.judgeable && canJudge && (
-              <Link
-                href={`/play/${t.id}`}
-                className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-sm font-bold text-white hover:opacity-90"
-              >
-                判定する
-              </Link>
-            )}
-          </li>
-        );
-      })}
-    </ul>
   );
 }

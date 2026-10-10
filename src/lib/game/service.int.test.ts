@@ -364,3 +364,32 @@ describe("タスクの期限・削除・分類", () => {
     expect(await listTasks(other, TODAY)).toHaveLength(1);
   });
 });
+
+describe("判定済みタスクのゲームごとの振り分け", () => {
+  it("判定済みの単発タスクは、判定したゲームと日時を持つ", async () => {
+    const gameId = await startNewGame(user);
+    const once = await createTask(user, { title: "単発", recurrenceType: "once" });
+    await submitMove(user, { taskId: once.id, result: "achieved", row: 0, col: 0 }, TODAY);
+
+    const item = (await listTasks(user, TODAY)).find((t) => t.id === once.id)!;
+    expect(item.judgedGameId).toBe(gameId);
+    expect(new Date(item.judgedAt!).toISOString()).toBe(item.judgedAt);
+
+    const daily = await createTask(user, { title: "毎日", recurrenceType: "daily" });
+    const dailyItem = (await listTasks(user, TODAY)).find((t) => t.id === daily.id)!;
+    expect(dailyItem).toMatchObject({ judgedGameId: null, judgedAt: null });
+  });
+
+  it("ゲームの判定一覧は手順どおりで、毎日タスクも含む", async () => {
+    await startNewGame(user);
+    const once = await createTask(user, { title: "単発", recurrenceType: "once" });
+    const daily = await createTask(user, { title: "毎日", recurrenceType: "daily" });
+    await submitMove(user, { taskId: daily.id, result: "missed", row: 0, col: 0 }, TODAY);
+    await submitMove(user, { taskId: once.id, result: "achieved", row: 0, col: 1 }, TODAY);
+
+    expect((await getCurrentGame(user))!.judgments).toEqual([
+      { taskTitle: "毎日", recurrenceType: "daily", result: "missed", attemptedOn: TODAY },
+      { taskTitle: "単発", recurrenceType: "once", result: "achieved", attemptedOn: TODAY },
+    ]);
+  });
+});

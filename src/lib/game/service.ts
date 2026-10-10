@@ -124,6 +124,10 @@ export type TaskListItem = {
   category: TaskCategory;
   // 判定済みの単発タスクの結果。それ以外は null。
   result: AttemptResult | null;
+  // 判定済みの単発タスクを判定したゲームと日時。それ以外は null。
+  // ホームの「判定済みのタスク」には今のゲームで判定したものだけを出す。
+  judgedGameId: string | null;
+  judgedAt: string | null;
   judgeable: boolean;
   // 判定できない理由（判定済み・一時停止中など）。判定できるときは null。
   reason: string | null;
@@ -134,7 +138,7 @@ export async function listTasks(
   today: string = getJstTodayString(),
 ): Promise<TaskListItem[]> {
   const tasks = await db.orm.public.Task.where({ userId })
-    .include("attempts", (a) => a.select("attemptedOn", "result"))
+    .include("attempts", (a) => a.select("attemptedOn", "result", "gameId", "createdAt"))
     .orderBy([(t) => t.createdAt.asc(), (t) => t.id.asc()])
     .all();
   return tasks.map((t) => {
@@ -147,6 +151,8 @@ export async function listTasks(
       dueAt: toIsoOrNull(t.dueAt),
       category: judgedOnce ? "judged" : t.recurrenceType === "daily" && !t.active ? "paused" : "open",
       result: judgedOnce ? t.attempts[0].result : null,
+      judgedGameId: judgedOnce ? t.attempts[0].gameId : null,
+      judgedAt: judgedOnce ? toIsoOrNull(t.attempts[0].createdAt) : null,
       judgeable: check.ok,
       reason: check.ok ? null : check.error,
     };
@@ -166,6 +172,13 @@ export type GameView = {
   summary: GameSummary;
   canReplaceLastMove: boolean;
   lastMove: (Move & { taskTitle: string; result: AttemptResult }) | null;
+  // このゲームでの判定の一覧（手順どおり）。結果画面での振り返りに使う。
+  judgments: {
+    taskTitle: string;
+    recurrenceType: RecurrenceType;
+    result: AttemptResult;
+    attemptedOn: string;
+  }[];
 };
 
 async function loadGameView(
@@ -175,7 +188,7 @@ async function loadGameView(
   const game = await db.orm.public.Game.where({ userId, ...where })
     .include("placements", (p) =>
       p.orderBy((x) => x.sequenceNumber.asc()).include("taskAttempt", (a) =>
-        a.include("task", (t) => t.select("title")),
+        a.include("task", (t) => t.select("title", "recurrenceType")),
       ),
     )
     .first();
@@ -204,6 +217,12 @@ async function loadGameView(
           result: last.taskAttempt!.result,
         }
       : null,
+    judgments: game.placements.map((p) => ({
+      taskTitle: p.taskAttempt!.task!.title,
+      recurrenceType: p.taskAttempt!.task!.recurrenceType,
+      result: p.taskAttempt!.result,
+      attemptedOn: p.taskAttempt!.attemptedOn,
+    })),
   };
 }
 
