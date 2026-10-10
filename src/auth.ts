@@ -2,6 +2,7 @@ import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
+import { GUEST_PROVIDER_ID, GUEST_TTL_MS } from "@/lib/guest";
 
 // DBアダプタを使わない JWT セッション。
 // アダプタなしだと Auth.js の user.id はサインインごとにランダムなUUIDになるため、
@@ -42,6 +43,16 @@ if (process.env.AUTH_GOOGLE_ID) {
   );
 }
 
+// ログインせずに試す: 入力なしでランダムなIDのゲストユーザーになる（userId は "guest:<uuid>"）。
+providers.push(
+  Credentials({
+    id: GUEST_PROVIDER_ID,
+    name: "ゲスト",
+    credentials: {},
+    authorize: () => ({ id: crypto.randomUUID(), name: "ゲスト" }),
+  }),
+);
+
 if (isDevLoginEnabled) {
   // 開発専用: 名前を入れるだけでログインできる。OAuth Appを用意せずに動作確認するためのもの。
   providers.push(
@@ -66,6 +77,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, account }) {
       if (account) {
         token.uid = `${account.provider}:${account.providerAccountId}`;
+        if (account.provider === GUEST_PROVIDER_ID) token.guestSince = Date.now();
+      }
+      // ゲストのセッションは開始から7日で切る（期限切れのゲストデータは定期実行で削除される）。
+      if (typeof token.guestSince === "number" && Date.now() - token.guestSince > GUEST_TTL_MS) {
+        return null;
       }
       delete token.email;
       delete token.picture;

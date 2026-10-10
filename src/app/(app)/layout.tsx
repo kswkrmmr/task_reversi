@@ -2,10 +2,12 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { signOutAction } from "@/app/actions";
 import { requireUserId } from "@/lib/auth/session";
+import { GUEST_TTL_DAYS, isGuestUserId } from "@/lib/guest";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  await requireUserId();
+  const userId = await requireUserId();
   const session = await auth();
+  const isGuest = isGuestUserId(userId);
 
   return (
     <>
@@ -20,12 +22,26 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             </Link>
             <form action={signOutAction}>
               <button type="submit" className="text-ink-soft hover:underline" title={session?.user?.name ?? ""}>
-                ログアウト
+                {isGuest ? "試用をやめる" : "ログアウト"}
               </button>
             </form>
           </nav>
         </div>
       </header>
+      {isGuest && (
+        <div className="border-b border-accent/30 bg-accent/10">
+          <div className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+            <p>
+              ゲストで試用中です。記録は{GUEST_TTL_DAYS}日後に消えます。
+            </p>
+            <form action={signOutAction}>
+              <button type="submit" className="font-bold text-accent underline underline-offset-2">
+                ログインして記録を残す
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6">{children}</main>
     </>
   );

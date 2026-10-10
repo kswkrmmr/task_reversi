@@ -30,6 +30,10 @@
   メールアドレス・アイコンは要求せず、JWT からも削除している。アクセストークンは保存しない。ユーザーに説明済みの方針なので広げないこと。
 - クライアントIDが設定されているプロバイダだけログインボタンを出す（`oauthProviders`）。
 - 同じ人でも GitHub と Google では別ユーザー（`github:…` と `google:…`）。アカウント統合はしていない。
+- ゲスト（ログインせずに試す）: Credentials プロバイダ `guest` で `guest:<uuid>` を発行。記録はログイン後に引き継がない（ユーザー決定）。
+  セッションは開始から7日で jwt コールバックが null を返して切れる。7日より古いゲストデータは
+  Vercel Cron（`vercel.json`、毎日 18:00 UTC = 3:00 JST）→ `/api/cron/cleanup-guests` → `deleteExpiredGuestData` で削除。
+  Cron ルートは `CRON_SECRET`（Vercel が Bearer で送る）で保護。ゲスト量産の対策（レート制限）は未実装で、様子見の方針。
 - 本番は GitHub / Google OAuth。`AUTH_DEV_LOGIN=true` かつ非productionのときだけ、名前だけで入れる開発用ログイン（`dev-login:<name>`）が有効。
 
 ## テスト
@@ -47,7 +51,8 @@ asa-stamp の CLAUDE.md の注意点がそのまま当てはまる（`uuid()`、
 - DB: Vercel Marketplace の Neon（リソース名 `task-reversi-db`）。`DATABASE_URL` 等は Vercel 側に自動設定済み。
 - 本番DBへのマイグレーションは `DATABASE_URL_UNPOOLED` を使って `npx prisma db migrate` で適用する（pgbouncer 経由ではDDLを流さない）。
   本番の `db` ref はローカルの `migrations/app/refs/db.json` と共有しないため、本番適用時は `--advance-ref` を付けない。
-- 必要な環境変数（Production）: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`。開発用ログインは本番では無効。
+- 必要な環境変数（Production）: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CRON_SECRET`。開発用ログインは本番では無効。
+- GitHub 連携済み: `main` への push で本番へ自動デプロイ、他ブランチ/PR は Preview。Preview は本番と同じ Neon DB を見ているので注意。
 - **`.env.local` を作らない・残さないこと**（asa-stamp と同じ理由で、ローカルの開発サーバーが本番DBに繋がってしまう）。
   本番の接続情報が必要なときは `vercel env pull .env.vercel-prod.local --environment=production` で別名取得し、使い終わったら削除する。
 
