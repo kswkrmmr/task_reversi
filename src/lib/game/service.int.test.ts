@@ -110,13 +110,13 @@ describe("submitMove", () => {
     expect((await getCurrentGame(user))!.moves).toHaveLength(2);
   });
 
-  it("無効なタスクは判定できない", async () => {
+  it("一時停止中のタスクは判定できない", async () => {
     await startNewGame(user);
     const a = await createTask(user, { title: "a", recurrenceType: "daily" });
     await updateTask(user, a.id, { title: "a", recurrenceType: "daily", active: false });
     await expect(
       submitMove(user, { taskId: a.id, result: "achieved", row: 0, col: 0 }, TODAY),
-    ).rejects.toThrow("無効なタスクは判定できません");
+    ).rejects.toThrow("一時停止中のタスクは判定できません");
   });
 
   // 互いに隣接しないマスなので、順番に処理されても2手目以降はルール違反になり1手だけが成立する。

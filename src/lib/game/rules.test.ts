@@ -50,7 +50,7 @@ describe("checkCanJudge", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("無効なタスクは判定できない", () => {
+  it("一時停止中のタスクは判定できない", () => {
     expect(checkCanJudge({ recurrenceType: "daily", active: false }, [], today).ok).toBe(false);
   });
 });

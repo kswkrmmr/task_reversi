@@ -18,7 +18,7 @@ export function checkCanJudge(
   today: string,
 ): JudgeCheck {
   if (!task.active) {
-    return { ok: false, error: "無効なタスクは判定できません" };
+    return { ok: false, error: "一時停止中のタスクは判定できません" };
   }
   if (task.recurrenceType === "once" && pastAttempts.length > 0) {
     return { ok: false, error: "このタスクはすでに判定済みです" };

@@ -51,7 +51,8 @@ export async function updateTaskAction(
   const userId = await requireUserId();
   const state = await runAction(async () => {
     const input = validateTaskInput(formData.get("title"), formData.get("recurrenceType"));
-    await updateTask(userId, taskId, { ...input, active: formData.get("active") === "on" });
+    // フォームは「一時停止中」のチェックなので、DB の active はその反対。
+    await updateTask(userId, taskId, { ...input, active: formData.get("paused") !== "on" });
   });
   if (state.error) return state;
   revalidatePath("/");

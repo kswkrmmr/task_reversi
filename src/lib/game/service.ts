@@ -65,7 +65,7 @@ export type TaskListItem = {
   recurrenceType: RecurrenceType;
   active: boolean;
   judgeable: boolean;
-  // 判定できない理由（判定済み・無効など）。判定できるときは null。
+  // 判定できない理由（判定済み・一時停止中など）。判定できるときは null。
   reason: string | null;
 };
 

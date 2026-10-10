@@ -98,11 +98,46 @@ function TaskList({ tasks, canJudge }: { tasks: TaskListItem[]; canJudge: boolea
   if (tasks.length === 0) {
     return <p className="text-sm text-ink-soft">まだタスクがありません。「＋ 追加」から登録しましょう。</p>;
   }
-  const sorted = [...tasks].sort((a, b) => Number(b.judgeable) - Number(a.judgeable));
+  const active = tasks
+    .filter((t) => t.active)
+    .sort((a, b) => Number(b.judgeable) - Number(a.judgeable));
+  const paused = tasks.filter((t) => !t.active);
 
   return (
+    <div className="space-y-3">
+      {active.length > 0 ? (
+        <TaskRows tasks={active} canJudge={canJudge} />
+      ) : (
+        <p className="text-sm text-ink-soft">判定できるタスクはありません。</p>
+      )}
+
+      {paused.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer list-none text-sm text-ink-soft select-none [&::-webkit-details-marker]:hidden">
+            <span className="inline-block transition-transform group-open:rotate-90">▶</span>{" "}
+            一時停止中のタスク（{paused.length}件）
+          </summary>
+          <div className="mt-2">
+            <TaskRows tasks={paused} canJudge={false} showReason={false} />
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function TaskRows({
+  tasks,
+  canJudge,
+  showReason = true,
+}: {
+  tasks: TaskListItem[];
+  canJudge: boolean;
+  showReason?: boolean;
+}) {
+  return (
     <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card">
-      {sorted.map((t) => (
+      {tasks.map((t) => (
         <li key={t.id} className={`flex items-center gap-3 px-4 py-3 ${t.judgeable ? "" : "text-ink-soft"}`}>
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{t.title}</p>
@@ -110,7 +145,7 @@ function TaskList({ tasks, canJudge }: { tasks: TaskListItem[]; canJudge: boolea
               <span className="mr-2 rounded bg-paper px-1.5 py-0.5">
                 {t.recurrenceType === "once" ? "単発" : "毎日"}
               </span>
-              {t.reason}
+              {showReason && t.reason}
             </p>
           </div>
           <Link

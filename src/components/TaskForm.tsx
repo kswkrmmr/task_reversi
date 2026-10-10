@@ -12,7 +12,7 @@ export function TaskForm({
   submitLabel,
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
-  // 編集時のみ渡す。active の切り替えは編集時だけ表示する。
+  // 編集時のみ渡す。一時停止の切り替えは編集時だけ表示する（一時停止中 = active が false）。
   defaults?: { title: string; recurrenceType: RecurrenceType; active: boolean };
   submitLabel: string;
 }) {
@@ -62,8 +62,8 @@ export function TaskForm({
 
       {defaults && (
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="active" defaultChecked={defaults.active} />
-          <span>有効（オフにすると判定できなくなります）</span>
+          <input type="checkbox" name="paused" defaultChecked={!defaults.active} />
+          <span>一時停止中（判定の対象から外します。過去の記録は残ります）</span>
         </label>
       )}
 
