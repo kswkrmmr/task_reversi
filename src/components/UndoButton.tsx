@@ -32,7 +32,7 @@ export function UndoButton({ description }: { description: string }) {
       className="rounded-lg border border-line bg-card p-3 text-sm"
     >
       <p>
-        「{description}」の判定と配置を取り消します。取り消しは続けて1回までです。
+        「{description}」の判定と配置を取り消します。取り消しは1手のみです。
       </p>
       <div className="mt-2 flex gap-2">
         <button
