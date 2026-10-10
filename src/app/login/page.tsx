@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth, isDevLoginEnabled, oauthProviders, signIn } from "@/auth";
 import { Stone } from "@/components/ReversiBoard";
-import { GUEST_PROVIDER_ID, GUEST_TTL_DAYS } from "@/lib/guest";
+import { GUEST_PROVIDER_ID } from "@/lib/guest";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -55,7 +55,7 @@ export default async function LoginPage() {
             ログインせずに試す
           </button>
           <p className="text-center text-xs text-ink-soft">
-            ゲストの記録は{GUEST_TTL_DAYS}日後に消え、ログイン後には引き継がれません。
+            ゲストの記録はログイン後には引き継がれません。
           </p>
         </form>
         <p className="border-t border-line pt-3 text-center text-xs text-ink-soft">

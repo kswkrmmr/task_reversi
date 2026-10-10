@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { signOutAction } from "@/app/actions";
 import { requireUserId } from "@/lib/auth/session";
-import { GUEST_TTL_DAYS, isGuestUserId } from "@/lib/guest";
+import { isGuestUserId } from "@/lib/guest";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const userId = await requireUserId();
@@ -31,9 +31,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       {isGuest && (
         <div className="border-b border-accent/30 bg-accent/10">
           <div className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
-            <p>
-              ゲストで試用中です。記録は{GUEST_TTL_DAYS}日後に消えます。
-            </p>
+            <p>ゲストで試用中です。</p>
             <form action={signOutAction}>
               <button type="submit" className="font-bold text-accent underline underline-offset-2">
                 ログインして記録を残す
