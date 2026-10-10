@@ -37,7 +37,7 @@ export default async function GameResultPage({ params }: PageProps<"/games/[id]"
       </p>
       {current ? (
         <Link
-          href="/"
+          href="/board"
           className="block rounded-md bg-felt px-4 py-3 text-center font-bold text-white hover:bg-felt-dark"
         >
           進行中のゲームへ

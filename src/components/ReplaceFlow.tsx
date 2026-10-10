@@ -46,7 +46,7 @@ export function ReplaceFlow({ moves, taskTitle }: { moves: Move[]; taskTitle: st
       )}
 
       <p className="text-center text-sm">
-        <Link href="/" className="text-ink-soft underline underline-offset-2">
+        <Link href="/board" className="text-ink-soft underline underline-offset-2">
           やめる（元の位置のまま）
         </Link>
       </p>

@@ -1,60 +1,47 @@
 import Link from "next/link";
-import { startNewGameAction } from "@/app/actions";
-import { ReversiBoard, StoneCounts } from "@/components/ReversiBoard";
-import { ReplaceLink } from "@/components/ReplaceLink";
+import { NoGamePanel } from "@/components/NoGamePanel";
+import { Stone } from "@/components/ReversiBoard";
 import { requireUserId } from "@/lib/auth/session";
-import { getCurrentGame, listFinishedGames, listTasks, type TaskListItem } from "@/lib/game/service";
+import { getCurrentGame, listTasks, type TaskListItem } from "@/lib/game/service";
 import { describeDue } from "@/lib/game/rules";
 import { BOARD_SIZE } from "@/lib/reversi/board";
 
 const TOTAL = BOARD_SIZE * BOARD_SIZE;
 
-export default async function HomePage() {
+// タスクタブ（ホーム）。盤面は「盤面」タブに分け、ここでは1行の要約だけを出す。
+export default async function TasksPage() {
   const userId = await requireUserId();
   const [game, tasks] = await Promise.all([getCurrentGame(userId), listTasks(userId)]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {game ? (
-        <section className="space-y-3">
-          <div className="flex items-end justify-between">
-            <h1 className="text-lg font-bold">現在のゲーム</h1>
-            <p className="text-sm text-ink-soft">
+        <Link
+          href="/board"
+          className="flex items-center justify-between gap-3 rounded-lg border border-line bg-card px-4 py-3 text-sm hover:border-felt"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <Stone color="white" className="h-4 w-4" />
+              <span className="font-bold tabular-nums">{game.summary.white}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <Stone color="black" className="h-4 w-4" />
+              <span className="font-bold tabular-nums">{game.summary.black}</span>
+            </span>
+            <span className="text-ink-soft">
               {game.moves.length} / {TOTAL} 手
-            </p>
-          </div>
-          <div
-            className="h-1.5 overflow-hidden rounded-full bg-line"
-            role="progressbar"
-            aria-valuenow={game.moves.length}
-            aria-valuemax={TOTAL}
-            aria-label="ゲームの進行状況"
-          >
-            <div className="h-full bg-felt" style={{ width: `${(game.moves.length / TOTAL) * 100}%` }} />
-          </div>
-          <ReversiBoard board={game.board} lastMove={game.lastMove} />
-          <StoneCounts
-            white={game.summary.white}
-            black={game.summary.black}
-            empty={TOTAL - game.moves.length}
-          />
-          {game.lastMove && (
-            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-ink-soft">
-              <p>
-                直前: 「{game.lastMove.taskTitle}」
-                {game.lastMove.result === "achieved" ? "達成（白）" : "未達成（黒）"}
-              </p>
-              {game.canReplaceLastMove && <ReplaceLink />}
-            </div>
-          )}
-        </section>
+            </span>
+          </span>
+          <span className="text-ink-soft">盤面を見る ›</span>
+        </Link>
       ) : (
-        <NoGame userId={userId} />
+        <NoGamePanel userId={userId} />
       )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">タスク</h2>
+          <h1 className="text-lg font-bold">タスク</h1>
           <Link
             href="/tasks/new"
             className="rounded-md bg-felt px-3 py-1.5 text-sm font-bold text-white hover:bg-felt-dark"
@@ -65,33 +52,6 @@ export default async function HomePage() {
         <TaskList tasks={tasks} canJudge={game !== null} />
       </section>
     </div>
-  );
-}
-
-async function NoGame({ userId }: { userId: string }) {
-  const [latest] = await listFinishedGames(userId);
-  return (
-    <section className="space-y-3 rounded-lg border border-line bg-card p-5 text-center">
-      <p className="font-bold">{latest ? "ゲームが終了しました" : "ようこそ！"}</p>
-      <p className="text-sm text-ink-soft">
-        {latest
-          ? "新しいゲームを始めると、空の盤面からスタートします。タスクは引き継がれます。"
-          : "タスクを登録して、ゲームを始めましょう。"}
-      </p>
-      <form action={startNewGameAction}>
-        <button
-          type="submit"
-          className="rounded-md bg-felt px-5 py-2.5 font-bold text-white hover:bg-felt-dark"
-        >
-          新しいゲームを始める
-        </button>
-      </form>
-      {latest && (
-        <Link href={`/games/${latest.id}`} className="inline-block text-sm underline underline-offset-2">
-          前回の結果を見る
-        </Link>
-      )}
-    </section>
   );
 }
 

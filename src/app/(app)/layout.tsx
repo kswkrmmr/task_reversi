@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { signOutAction } from "@/app/actions";
+import { TabBar } from "@/components/TabBar";
 import { requireUserId } from "@/lib/auth/session";
 import { isGuestUserId } from "@/lib/guest";
 
@@ -17,9 +18,6 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             タスクでリバーシ
           </Link>
           <nav className="flex items-center gap-4 text-sm">
-            <Link href="/games" className="hover:underline">
-              履歴
-            </Link>
             <form action={signOutAction}>
               <button type="submit" className="text-ink-soft hover:underline" title={session?.user?.name ?? ""}>
                 {isGuest ? "試用をやめる" : "ログアウト"}
@@ -40,7 +38,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </div>
         </div>
       )}
-      <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6">{children}</main>
+      {/* 下部の固定タブに隠れないよう、下側に余白をとる */}
+      <main className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-28">{children}</main>
+      <TabBar />
     </>
   );
 }

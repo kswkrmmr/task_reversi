@@ -99,7 +99,7 @@ export async function replaceLastMoveAction(pos: Position): Promise<ActionState>
   );
   if (state.error) return state;
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/board");
 }
 
 export async function startNewGameAction(): Promise<void> {
