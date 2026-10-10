@@ -34,7 +34,10 @@ model Task {
   userId         String
   title          String
   recurrenceType RecurrenceType
+  // 一時停止中なら false。毎日タスクだけが使う（単発タスクは一時停止しないので常に無視する）。
   active         Boolean        @default(true)
+  // 単発タスクの期限（任意・時刻つき）。毎日タスクでは常に null。
+  dueAt          TimestamptzString?
   createdAt      TimestamptzString @default(now())
   attempts       TaskAttempt[]
 

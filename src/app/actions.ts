@@ -6,6 +6,7 @@ import { signOut } from "@/auth";
 import { requireUserId } from "@/lib/auth/session";
 import {
   createTask,
+  deleteTask,
   GameError,
   replaceLastMove,
   startNewGame,
@@ -35,7 +36,11 @@ export async function createTaskAction(
 ): Promise<ActionState> {
   const userId = await requireUserId();
   const state = await runAction(async () => {
-    const input = validateTaskInput(formData.get("title"), formData.get("recurrenceType"));
+    const input = validateTaskInput(
+      formData.get("title"),
+      formData.get("recurrenceType"),
+      formData.get("dueAt"),
+    );
     await createTask(userId, input);
   });
   if (state.error) return state;
@@ -50,10 +55,22 @@ export async function updateTaskAction(
 ): Promise<ActionState> {
   const userId = await requireUserId();
   const state = await runAction(async () => {
-    const input = validateTaskInput(formData.get("title"), formData.get("recurrenceType"));
+    const input = validateTaskInput(
+      formData.get("title"),
+      formData.get("recurrenceType"),
+      formData.get("dueAt"),
+    );
     // フォームは「一時停止中」のチェックなので、DB の active はその反対。
     await updateTask(userId, taskId, { ...input, active: formData.get("paused") !== "on" });
   });
+  if (state.error) return state;
+  revalidatePath("/");
+  redirect("/");
+}
+
+export async function deleteTaskAction(taskId: string, _prev: ActionState): Promise<ActionState> {
+  const userId = await requireUserId();
+  const state = await runAction(() => deleteTask(userId, taskId));
   if (state.error) return state;
   revalidatePath("/");
   redirect("/");

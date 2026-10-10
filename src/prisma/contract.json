@@ -333,6 +333,13 @@
                   "kind": "scalar"
                 }
               },
+              "dueAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -392,6 +399,9 @@
                 },
                 "createdAt": {
                   "column": "createdAt"
+                },
+                "dueAt": {
+                  "column": "dueAt"
                 },
                 "id": {
                   "column": "id"
@@ -797,6 +807,11 @@
                   },
                   "nullable": false
                 },
+                "dueAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -1002,7 +1017,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "91d757882d0c03f5f22d89b4569a0673f2de9a974613c27105992cd1716a0915"
+    "storageHash": "715deb653d2d16ad6b3f308ccb985dd40b2a3de7432f9fb0ef47e0ea292691cf"
   },
   "execution": {
     "executionHash": "6bfeb4566221cf47854b912a34ae20f49e8d6a0a50e174bac0a88e62f3839eba",

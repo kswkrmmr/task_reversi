@@ -4,15 +4,18 @@ import { db } from "@/prisma/db";
 import { placeableCells } from "@/lib/reversi/board";
 import {
   createTask,
+  deleteTask,
   GameError,
   getCurrentGame,
   getGame,
+  getTask,
   listFinishedGames,
   listTasks,
   replaceLastMove,
   startNewGame,
   submitMove,
   updateTask,
+  validateTaskInput,
 } from "./service";
 
 const TODAY = "2026-10-09";
@@ -283,7 +286,7 @@ describe("ユーザーごとのアクセス制御", () => {
     ).rejects.toThrow("タスクが見つかりません");
 
     const otherItems = await listTasks(other, TODAY);
-    expect(otherItems[0]).toMatchObject({ title: "他人のタスク", active: true, judgeable: true });
+    expect(otherItems[0]).toMatchObject({ title: "他人のタスク", category: "open", judgeable: true });
   });
 
   it("他ユーザーのゲームの石は置き直せない", async () => {
@@ -294,5 +297,70 @@ describe("ユーザーごとのアクセス制御", () => {
 
     await expect(replaceLastMove(user, { row: 1, col: 1 })).rejects.toThrow("進行中のゲームがありません");
     expect((await getCurrentGame(other))!.moves).toHaveLength(1);
+  });
+});
+
+describe("タスクの期限・削除・分類", () => {
+  it("単発タスクの期限は日本時間として保存し、毎日タスクの期限は無視する", async () => {
+    expect(validateTaskInput("a", "once", "2026-10-12T18:00")).toEqual({
+      title: "a",
+      recurrenceType: "once",
+      dueAt: "2026-10-12T09:00:00.000Z",
+    });
+    expect(validateTaskInput("a", "once", "")).toMatchObject({ dueAt: null });
+    expect(validateTaskInput("a", "daily", "2026-10-12T18:00")).toMatchObject({ dueAt: null });
+    expect(() => validateTaskInput("a", "once", "2026-02-30T10:00")).toThrow("期限の日時が正しくありません");
+
+    const once = await createTask(user, validateTaskInput("期限つき", "once", "2026-10-12T18:00"));
+    await createTask(user, { title: "毎日", recurrenceType: "daily", dueAt: "2026-10-12T09:00:00.000Z" });
+    const items = await listTasks(user, TODAY);
+    expect(items.find((t) => t.id === once.id)).toMatchObject({
+      dueAt: "2026-10-12T09:00:00.000Z",
+      category: "open",
+    });
+    expect(items.find((t) => t.title === "毎日")?.dueAt).toBeNull();
+  });
+
+  it("判定済みの単発タスクは「判定済み」に分類し、結果を持つ。毎日タスクは判定しても open のまま", async () => {
+    await startNewGame(user);
+    const once = await createTask(user, { title: "単発", recurrenceType: "once" });
+    const daily = await createTask(user, { title: "毎日", recurrenceType: "daily" });
+    await submitMove(user, { taskId: once.id, result: "missed", row: 0, col: 0 }, TODAY);
+    await submitMove(user, { taskId: daily.id, result: "achieved", row: 0, col: 1 }, TODAY);
+
+    const items = await listTasks(user, TODAY);
+    expect(items.find((t) => t.id === once.id)).toMatchObject({ category: "judged", result: "missed" });
+    expect(items.find((t) => t.id === daily.id)).toMatchObject({ category: "open", result: null });
+  });
+
+  it("一時停止は毎日タスクだけ。単発に変えると一時停止は解除される", async () => {
+    const task = await createTask(user, { title: "歩く", recurrenceType: "daily" });
+    await updateTask(user, task.id, { title: "歩く", recurrenceType: "daily", active: false });
+    expect((await listTasks(user, TODAY))[0]).toMatchObject({ category: "paused", judgeable: false });
+
+    await updateTask(user, task.id, { title: "歩く", recurrenceType: "once", active: false });
+    expect((await listTasks(user, TODAY))[0]).toMatchObject({ category: "open", judgeable: true });
+    expect((await getTask(user, task.id))?.active).toBe(true);
+  });
+
+  it("削除できるのは未判定の単発タスクだけ", async () => {
+    await startNewGame(user);
+    const fresh = await createTask(user, { title: "未判定", recurrenceType: "once" });
+    const judged = await createTask(user, { title: "判定済み", recurrenceType: "once" });
+    const daily = await createTask(user, { title: "毎日", recurrenceType: "daily" });
+    await submitMove(user, { taskId: judged.id, result: "achieved", row: 0, col: 0 }, TODAY);
+
+    await deleteTask(user, fresh.id);
+    await expect(deleteTask(user, judged.id)).rejects.toThrow("判定済みのタスクは削除できません");
+    await expect(deleteTask(user, daily.id)).rejects.toThrow("毎日のタスクは削除できません");
+    expect((await listTasks(user, TODAY)).map((t) => t.title).sort()).toEqual(["判定済み", "毎日"]);
+    expect((await getCurrentGame(user))!.moves).toHaveLength(1);
+  });
+
+  it("他ユーザーのタスクは削除できない", async () => {
+    const other = newUser();
+    const task = await createTask(other, { title: "他人の", recurrenceType: "once" });
+    await expect(deleteTask(user, task.id)).rejects.toThrow("タスクが見つかりません");
+    expect(await listTasks(other, TODAY)).toHaveLength(1);
   });
 });

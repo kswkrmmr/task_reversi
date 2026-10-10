@@ -4,6 +4,7 @@ import { ReversiBoard, StoneCounts } from "@/components/ReversiBoard";
 import { ReplaceLink } from "@/components/ReplaceLink";
 import { requireUserId } from "@/lib/auth/session";
 import { getCurrentGame, listFinishedGames, listTasks, type TaskListItem } from "@/lib/game/service";
+import { describeDue } from "@/lib/game/rules";
 import { BOARD_SIZE } from "@/lib/reversi/board";
 
 const TOTAL = BOARD_SIZE * BOARD_SIZE;
@@ -98,72 +99,101 @@ function TaskList({ tasks, canJudge }: { tasks: TaskListItem[]; canJudge: boolea
   if (tasks.length === 0) {
     return <p className="text-sm text-ink-soft">まだタスクがありません。「＋ 追加」から登録しましょう。</p>;
   }
-  const active = tasks
-    .filter((t) => t.active)
-    .sort((a, b) => Number(b.judgeable) - Number(a.judgeable));
-  const paused = tasks.filter((t) => !t.active);
+  const now = new Date();
+  const open = sortOpenTasks(tasks.filter((t) => t.category === "open"));
+  const paused = tasks.filter((t) => t.category === "paused");
+  const judged = tasks.filter((t) => t.category === "judged");
 
   return (
     <div className="space-y-3">
-      {active.length > 0 ? (
-        <TaskRows tasks={active} canJudge={canJudge} />
+      {open.length > 0 ? (
+        <TaskRows tasks={open} canJudge={canJudge} now={now} />
       ) : (
         <p className="text-sm text-ink-soft">判定できるタスクはありません。</p>
       )}
-
-      {paused.length > 0 && (
-        <details className="group">
-          <summary className="cursor-pointer list-none text-sm text-ink-soft select-none [&::-webkit-details-marker]:hidden">
-            <span className="inline-block transition-transform group-open:rotate-90">▶</span>{" "}
-            一時停止中のタスク（{paused.length}件）
-          </summary>
-          <div className="mt-2">
-            <TaskRows tasks={paused} canJudge={false} showReason={false} />
-          </div>
-        </details>
-      )}
+      <FoldedTasks label="一時停止中のタスク" tasks={paused} now={now} />
+      <FoldedTasks label="判定済みのタスク" tasks={judged} now={now} />
     </div>
+  );
+}
+
+// 期限のあるタスクを期限が近い順（期限切れが先頭）に、期限のないタスクはその後ろに並べる。
+// 期限のないタスク同士は、判定できるものを先にする。
+function sortOpenTasks(tasks: TaskListItem[]): TaskListItem[] {
+  return [...tasks].sort((a, b) => {
+    if (a.dueAt && b.dueAt) return a.dueAt.localeCompare(b.dueAt);
+    if (a.dueAt) return -1;
+    if (b.dueAt) return 1;
+    return Number(b.judgeable) - Number(a.judgeable);
+  });
+}
+
+function FoldedTasks({ label, tasks, now }: { label: string; tasks: TaskListItem[]; now: Date }) {
+  if (tasks.length === 0) return null;
+  return (
+    <details className="group">
+      <summary className="cursor-pointer list-none text-sm text-ink-soft select-none [&::-webkit-details-marker]:hidden">
+        <span className="inline-block transition-transform group-open:rotate-90">▶</span> {label}（
+        {tasks.length}件）
+      </summary>
+      <div className="mt-2">
+        <TaskRows tasks={tasks} canJudge={false} now={now} showReason={false} />
+      </div>
+    </details>
   );
 }
 
 function TaskRows({
   tasks,
   canJudge,
+  now,
   showReason = true,
 }: {
   tasks: TaskListItem[];
   canJudge: boolean;
+  now: Date;
   showReason?: boolean;
 }) {
   return (
     <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card">
-      {tasks.map((t) => (
-        <li key={t.id} className={`flex items-center gap-3 px-4 py-3 ${t.judgeable ? "" : "text-ink-soft"}`}>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-bold">{t.title}</p>
-            <p className="text-xs">
-              <span className="mr-2 rounded bg-paper px-1.5 py-0.5">
-                {t.recurrenceType === "once" ? "単発" : "毎日"}
-              </span>
-              {showReason && t.reason}
-            </p>
-          </div>
-          <Link
-            href={`/tasks/${t.id}/edit`}
-            className="shrink-0 text-sm text-ink-soft underline underline-offset-2"
-          >
-            編集
-          </Link>
-          {t.judgeable && canJudge && (
+      {tasks.map((t) => {
+        const due = t.dueAt && t.category === "open" ? describeDue(t.dueAt, now) : null;
+        return (
+          <li key={t.id} className={`flex items-center gap-3 px-4 py-3 ${t.judgeable ? "" : "text-ink-soft"}`}>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold">{t.title}</p>
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                <span className="rounded bg-paper px-1.5 py-0.5">
+                  {t.recurrenceType === "once" ? "単発" : "毎日"}
+                </span>
+                {due && (
+                  <span className={due.overdue ? "font-bold text-danger" : ""}>{due.label}</span>
+                )}
+                {t.result && (
+                  <span className={t.result === "achieved" ? "font-bold text-felt" : ""}>
+                    {t.result === "achieved" ? "達成" : "未達成"}
+                  </span>
+                )}
+                {showReason && t.reason && <span>{t.reason}</span>}
+              </p>
+            </div>
             <Link
-              href={`/play/${t.id}`}
-              className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-sm font-bold text-white hover:opacity-90"
+              href={`/tasks/${t.id}/edit`}
+              className="shrink-0 text-sm text-ink-soft underline underline-offset-2"
             >
-              判定する
+              編集
             </Link>
-          )}
-        </li>
-      ))}
+            {t.judgeable && canJudge && (
+              <Link
+                href={`/play/${t.id}`}
+                className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-sm font-bold text-white hover:opacity-90"
+              >
+                判定する
+              </Link>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

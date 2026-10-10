@@ -3,6 +3,10 @@ import { createEmptyBoard } from "@/lib/reversi/board";
 import {
   canReplaceLastMove,
   checkCanJudge,
+  describeDue,
+  isoToJstLocalInput,
+  jstLocalInputToIso,
+  judgeGuide,
   stoneColorFor,
   summarizeGame,
   toJstDateString,
@@ -52,6 +56,10 @@ describe("checkCanJudge", () => {
 
   it("一時停止中のタスクは判定できない", () => {
     expect(checkCanJudge({ recurrenceType: "daily", active: false }, [], today).ok).toBe(false);
+  });
+
+  it("単発タスクは一時停止しないので、active が false でも判定できる（旧データ対策）", () => {
+    expect(checkCanJudge({ recurrenceType: "once", active: false }, [], today)).toEqual({ ok: true });
   });
 });
 
@@ -104,5 +112,68 @@ describe("toJstDateString", () => {
   it("UTCの日時をJSTの暦日に変換する", () => {
     expect(toJstDateString(new Date("2026-10-08T14:59:59Z"))).toBe("2026-10-08");
     expect(toJstDateString(new Date("2026-10-08T15:00:00Z"))).toBe("2026-10-09");
+  });
+});
+
+describe("describeDue", () => {
+  const due = "2026-10-12T09:00:00.000Z"; // JST 10/12(月) 18:00
+
+  it("期限前は日本時間の日時を「〜まで」で表示する", () => {
+    expect(describeDue(due, new Date("2026-10-10T00:00:00Z"))).toEqual({
+      overdue: false,
+      label: "10/12(月) 18:00まで",
+    });
+  });
+
+  it("期限を過ぎたら超過時間を表示する（日・時間・分）", () => {
+    expect(describeDue(due, new Date("2026-10-14T10:00:00Z"))).toEqual({
+      overdue: true,
+      label: "期限切れ（2日超過）",
+    });
+    expect(describeDue(due, new Date("2026-10-12T14:30:00Z")).label).toBe("期限切れ（5時間超過）");
+    expect(describeDue(due, new Date("2026-10-12T09:20:00Z")).label).toBe("期限切れ（20分超過）");
+  });
+
+  it("期限ちょうどはまだ期限内", () => {
+    expect(describeDue(due, new Date(due)).overdue).toBe(false);
+  });
+});
+
+describe("JST の日時入力との変換", () => {
+  it("datetime-local の値を日本時間として ISO に変換する", () => {
+    expect(jstLocalInputToIso("2026-10-12T18:00")).toBe("2026-10-12T09:00:00.000Z");
+  });
+
+  it("ISO を日本時間の datetime-local の値に変換する", () => {
+    expect(isoToJstLocalInput("2026-10-12T09:00:00.000Z")).toBe("2026-10-12T18:00");
+  });
+
+  it("不正な値は null", () => {
+    expect(jstLocalInputToIso("")).toBeNull();
+    expect(jstLocalInputToIso("2026-13-40T99:00")).toBeNull();
+    expect(jstLocalInputToIso("abc")).toBeNull();
+  });
+});
+
+describe("judgeGuide", () => {
+  it("毎日タスクは今日やったかどうか", () => {
+    expect(judgeGuide({ recurrenceType: "daily", dueAt: null })).toEqual({
+      achieved: "今日やった",
+      missed: "今日はできなかった",
+    });
+  });
+
+  it("期限ありの単発タスクは期限までに終えたかどうか", () => {
+    expect(judgeGuide({ recurrenceType: "once", dueAt: "2026-10-12T09:00:00.000Z" })).toEqual({
+      achieved: "期限までにやり終えた",
+      missed: "期限までに終わらなかった・やめることにした",
+    });
+  });
+
+  it("期限なしの単発タスクはやり終えたかどうか", () => {
+    expect(judgeGuide({ recurrenceType: "once", dueAt: null })).toEqual({
+      achieved: "やり終えた",
+      missed: "やめることにした",
+    });
   });
 });

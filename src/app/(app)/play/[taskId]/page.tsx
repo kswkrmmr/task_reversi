@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { PlayFlow } from "@/components/PlayFlow";
 import { ReplaceLink } from "@/components/ReplaceLink";
 import { requireUserId } from "@/lib/auth/session";
+import { describeDue } from "@/lib/game/rules";
 import { getCurrentGame, listTasks } from "@/lib/game/service";
 
 export default async function PlayPage({ params }: PageProps<"/play/[taskId]">) {
@@ -30,6 +31,9 @@ export default async function PlayPage({ params }: PageProps<"/play/[taskId]">) 
       <PlayFlow
         taskId={task.id}
         taskTitle={task.title}
+        recurrenceType={task.recurrenceType}
+        dueAt={task.dueAt}
+        due={task.dueAt ? describeDue(task.dueAt, new Date()) : null}
         moves={game.moves}
         lastMove={game.lastMove}
       />

@@ -15,6 +15,7 @@ import {
   canReplaceLastMove,
   checkCanJudge,
   getJstTodayString,
+  jstLocalInputToIso,
   stoneColorFor,
   summarizeGame,
   type AttemptResult,
@@ -30,40 +31,99 @@ const CONFLICT_MESSAGE = "他の操作と重なりました。画面を再読み
 
 // ---------- タスク ----------
 
-export type TaskInput = { title: string; recurrenceType: RecurrenceType };
+// dueAt は単発タスクの期限（ISO文字列、任意）。毎日タスクでは常に null。
+export type TaskInput = { title: string; recurrenceType: RecurrenceType; dueAt?: string | null };
 
-export function validateTaskInput(title: unknown, recurrenceType: unknown): TaskInput {
+// DB の timestamptz は "2026-10-12 09:00:00+00" 形式の文字列で返るので、ISO 形式に揃える。
+function toIsoOrNull(value: string | null): string | null {
+  return value ? new Date(value).toISOString() : null;
+}
+
+// 毎日タスクは期限を持たないので null に揃える。
+function taskColumns(input: TaskInput) {
+  return {
+    title: input.title,
+    recurrenceType: input.recurrenceType,
+    dueAt: input.recurrenceType === "once" ? (input.dueAt ?? null) : null,
+  };
+}
+
+// dueInput は <input type="datetime-local"> の値（日本時間）。空なら期限なし。
+export function validateTaskInput(
+  title: unknown,
+  recurrenceType: unknown,
+  dueInput: unknown = "",
+): TaskInput {
   const trimmed = typeof title === "string" ? title.trim() : "";
   if (trimmed.length === 0) throw new GameError("タスク名を入力してください");
   if (trimmed.length > 100) throw new GameError("タスク名は100文字以内にしてください");
   if (recurrenceType !== "once" && recurrenceType !== "daily") {
     throw new GameError("単発か繰り返しかを選んでください");
   }
-  return { title: trimmed, recurrenceType };
+  if (recurrenceType === "daily") return { title: trimmed, recurrenceType, dueAt: null };
+
+  const raw = typeof dueInput === "string" ? dueInput.trim() : "";
+  if (raw === "") return { title: trimmed, recurrenceType, dueAt: null };
+  const dueAt = jstLocalInputToIso(raw);
+  if (!dueAt) throw new GameError("期限の日時が正しくありません");
+  return { title: trimmed, recurrenceType, dueAt };
 }
 
 export async function createTask(userId: string, input: TaskInput) {
-  return db.orm.public.Task.create({ userId, ...input });
+  return db.orm.public.Task.create({ userId, ...taskColumns(input), active: true });
 }
 
+// 単発タスクは一時停止しないので、単発に変えたとき（または単発のまま保存したとき）は active を true に戻す。
 export async function updateTask(
   userId: string,
   taskId: string,
   input: TaskInput & { active: boolean },
 ) {
-  const count = await db.orm.public.Task.where({ id: taskId, userId }).updateAndCount(input);
+  const active = input.recurrenceType === "once" ? true : input.active;
+  const count = await db.orm.public.Task.where({ id: taskId, userId }).updateAndCount({
+    ...taskColumns(input),
+    active,
+  });
   if (count === 0) throw new GameError("タスクが見つかりません");
 }
 
-export async function getTask(userId: string, taskId: string) {
-  return db.orm.public.Task.where({ id: taskId, userId }).first();
+// 削除できるのは、まだ判定していない単発タスクだけ。
+// 判定済みのタスクは盤面の石や結果の集計に使われているので消さない（毎日タスクは一時停止で代用する）。
+export async function deleteTask(userId: string, taskId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    const task = await tx.orm.public.Task.where({ id: taskId, userId })
+      .include("attempts", (a) => a.select("id"))
+      .first();
+    if (!task) throw new GameError("タスクが見つかりません");
+    if (task.recurrenceType !== "once") {
+      throw new GameError("毎日のタスクは削除できません。一時停止を使ってください");
+    }
+    if (task.attempts.length > 0) throw new GameError("判定済みのタスクは削除できません");
+    await tx.orm.public.Task.where({ id: task.id }).delete();
+  });
 }
+
+export async function getTask(userId: string, taskId: string) {
+  const task = await db.orm.public.Task.where({ id: taskId, userId })
+    .include("attempts", (a) => a.select("id"))
+    .first();
+  if (!task) return null;
+  const { attempts, ...rest } = task;
+  return { ...rest, dueAt: toIsoOrNull(rest.dueAt), judged: attempts.length > 0 };
+}
+
+// open: これから判定できる（または今日は判定済みの毎日タスク） / paused: 一時停止中の毎日タスク
+// judged: 判定済みの単発タスク
+export type TaskCategory = "open" | "paused" | "judged";
 
 export type TaskListItem = {
   id: string;
   title: string;
   recurrenceType: RecurrenceType;
-  active: boolean;
+  dueAt: string | null;
+  category: TaskCategory;
+  // 判定済みの単発タスクの結果。それ以外は null。
+  result: AttemptResult | null;
   judgeable: boolean;
   // 判定できない理由（判定済み・一時停止中など）。判定できるときは null。
   reason: string | null;
@@ -74,16 +134,19 @@ export async function listTasks(
   today: string = getJstTodayString(),
 ): Promise<TaskListItem[]> {
   const tasks = await db.orm.public.Task.where({ userId })
-    .include("attempts", (a) => a.select("attemptedOn"))
+    .include("attempts", (a) => a.select("attemptedOn", "result"))
     .orderBy([(t) => t.createdAt.asc(), (t) => t.id.asc()])
     .all();
   return tasks.map((t) => {
     const check = checkCanJudge(t, t.attempts, today);
+    const judgedOnce = t.recurrenceType === "once" && t.attempts.length > 0;
     return {
       id: t.id,
       title: t.title,
       recurrenceType: t.recurrenceType,
-      active: t.active,
+      dueAt: toIsoOrNull(t.dueAt),
+      category: judgedOnce ? "judged" : t.recurrenceType === "daily" && !t.active ? "paused" : "open",
+      result: judgedOnce ? t.attempts[0].result : null,
       judgeable: check.ok,
       reason: check.ok ? null : check.error,
     };

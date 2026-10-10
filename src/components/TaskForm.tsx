@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { ActionState } from "@/app/actions";
-import type { RecurrenceType } from "@/lib/game/rules";
+import { isoToJstLocalInput, type RecurrenceType } from "@/lib/game/rules";
 
 const initialState: ActionState = { error: null };
 
@@ -13,10 +13,14 @@ export function TaskForm({
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   // 編集時のみ渡す。一時停止の切り替えは編集時だけ表示する（一時停止中 = active が false）。
-  defaults?: { title: string; recurrenceType: RecurrenceType; active: boolean };
+  defaults?: { title: string; recurrenceType: RecurrenceType; active: boolean; dueAt: string | null };
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
+    defaults?.recurrenceType ?? "once",
+  );
+  const [due, setDue] = useState(defaults?.dueAt ? isoToJstLocalInput(defaults.dueAt) : "");
 
   return (
     <form action={formAction} className="space-y-5">
@@ -50,7 +54,8 @@ export function TaskForm({
                   type="radio"
                   name="recurrenceType"
                   value={value}
-                  defaultChecked={(defaults?.recurrenceType ?? "once") === value}
+                  checked={recurrenceType === value}
+                  onChange={() => setRecurrenceType(value)}
                 />
                 <span className="font-bold">{label}</span>
               </span>
@@ -60,7 +65,37 @@ export function TaskForm({
         </div>
       </fieldset>
 
-      {defaults && (
+      {recurrenceType === "once" && (
+        <div>
+          <label htmlFor="dueAt" className="text-sm font-bold">
+            期限（任意）
+          </label>
+          <div className="mt-1 flex items-center gap-2">
+            <input
+              id="dueAt"
+              type="datetime-local"
+              name="dueAt"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              className="block min-w-0 flex-1 rounded-md border border-line bg-white px-3 py-2 text-base"
+            />
+            {due && (
+              <button
+                type="button"
+                onClick={() => setDue("")}
+                className="shrink-0 text-sm text-ink-soft underline underline-offset-2"
+              >
+                期限なしにする
+              </button>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-ink-soft">
+            期限までにやり終えたら「達成」、終わらなかったら「未達成」が目安です。
+          </p>
+        </div>
+      )}
+
+      {defaults && recurrenceType === "daily" && (
         <label className="flex items-center gap-2">
           <input type="checkbox" name="paused" defaultChecked={!defaults.active} />
           <span>一時停止中（判定の対象から外します。過去の記録は残ります）</span>

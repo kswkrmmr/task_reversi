@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'91d757882d0c03f5f22d89b4569a0673f2de9a974613c27105992cd1716a0915'>;
+  StorageHashBase<'715deb653d2d16ad6b3f308ccb985dd40b2a3de7432f9fb0ef47e0ea292691cf'>;
 export type ExecutionHash =
   ExecutionHashBase<'6bfeb4566221cf47854b912a34ae20f49e8d6a0a50e174bac0a88e62f3839eba'>;
 export type ProfileHash =
@@ -255,6 +255,7 @@ export type FieldOutputTypes = {
     readonly Task: {
       readonly active: CodecTypes['pg/bool@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly dueAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly recurrenceType: 'once' | 'daily';
       readonly title: CodecTypes['pg/text@1']['output'];
@@ -293,6 +294,7 @@ export type FieldInputTypes = {
     readonly Task: {
       readonly active: CodecTypes['pg/bool@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly dueAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly recurrenceType: 'once' | 'daily';
       readonly title: CodecTypes['pg/text@1']['input'];
@@ -331,6 +333,7 @@ export type StorageColumnTypes = {
     readonly Task: {
       readonly active: CodecTypes['pg/bool@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly dueAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly recurrenceType: 'once' | 'daily';
       readonly title: CodecTypes['pg/text@1']['output'];
@@ -369,6 +372,7 @@ export type StorageColumnInputTypes = {
     readonly Task: {
       readonly active: CodecTypes['pg/bool@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly dueAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly recurrenceType: 'once' | 'daily';
       readonly title: CodecTypes['pg/text@1']['input'];
@@ -413,6 +417,7 @@ export namespace Models {
   export type public_Task = {
     active: CodecTypes['pg/bool@1']['output'];
     createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    dueAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
     id: CodecTypes['pg/text@1']['output'];
     recurrenceType: 'once' | 'daily';
     title: CodecTypes['pg/text@1']['output'];
@@ -638,6 +643,12 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly many: false;
+                };
+                readonly dueAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
                   readonly many: false;
                 };
                 readonly id: {
@@ -963,6 +974,13 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-string@1';
                 };
               };
+              readonly dueAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -999,6 +1017,7 @@ type ContractBase = Omit<
               readonly fields: {
                 readonly active: { readonly column: 'active' };
                 readonly createdAt: { readonly column: 'createdAt' };
+                readonly dueAt: { readonly column: 'dueAt' };
                 readonly id: { readonly column: 'id' };
                 readonly recurrenceType: { readonly column: 'recurrenceType' };
                 readonly title: { readonly column: 'title' };

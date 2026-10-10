@@ -5,7 +5,7 @@ import Link from "next/link";
 import { submitMoveAction } from "@/app/actions";
 import { PlacementPicker } from "@/components/PlacementPicker";
 import { ReversiBoard, Stone } from "@/components/ReversiBoard";
-import { stoneColorFor, type AttemptResult } from "@/lib/game/rules";
+import { judgeGuide, stoneColorFor, type AttemptResult, type RecurrenceType } from "@/lib/game/rules";
 import { placeableCells, replay, type Move, type Position } from "@/lib/reversi/board";
 
 // タスク判定 → 石の獲得 → 配置 → 確定 までを1画面で行う。
@@ -13,14 +13,22 @@ import { placeableCells, replay, type Move, type Position } from "@/lib/reversi/
 export function PlayFlow({
   taskId,
   taskTitle,
+  recurrenceType,
+  dueAt,
+  due,
   moves,
   lastMove,
 }: {
   taskId: string;
   taskTitle: string;
+  recurrenceType: RecurrenceType;
+  dueAt: string | null;
+  // 期限の表示（現在時刻に依存するのでサーバー側で計算して渡す）
+  due: { overdue: boolean; label: string } | null;
   moves: Move[];
   lastMove: Position | null;
 }) {
+  const guide = judgeGuide({ recurrenceType, dueAt });
   const board = useMemo(() => replay(moves), [moves]);
   const [result, setResult] = useState<AttemptResult | null>(null);
 
@@ -32,6 +40,11 @@ export function PlayFlow({
       <div className="rounded-lg border border-line bg-card p-4">
         <p className="text-xs text-ink-soft">判定するタスク</p>
         <p className="text-lg font-bold">{taskTitle}</p>
+        {due && (
+          <p className={`text-sm ${due.overdue ? "font-bold text-danger" : "text-ink-soft"}`}>
+            {due.overdue ? due.label : `期限: ${due.label}`}
+          </p>
+        )}
 
         {!result ? (
           <div className="mt-3 grid grid-cols-2 gap-3">
@@ -42,6 +55,7 @@ export function PlayFlow({
             >
               <Stone color="white" className="h-8 w-8" />
               達成
+              <span className="px-2 text-xs font-normal text-ink-soft">{guide.achieved}</span>
             </button>
             <button
               type="button"
@@ -50,7 +64,11 @@ export function PlayFlow({
             >
               <Stone color="black" className="h-8 w-8" />
               未達成
+              <span className="px-2 text-xs font-normal text-ink-soft">{guide.missed}</span>
             </button>
+            <p className="col-span-2 text-center text-xs text-ink-soft">
+              選び方は目安です。最後はあなたの判断で決めてください。
+            </p>
           </div>
         ) : (
           <div className="mt-3 flex items-center justify-between gap-3">
