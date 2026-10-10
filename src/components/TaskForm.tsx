@@ -90,7 +90,7 @@ export function TaskForm({
             )}
           </div>
           <p className="mt-1 text-xs text-ink-soft">
-            期日を守ってタスク完了なら「達成」、あきらめた・期日を過ぎたら「未達成」が目安です。
+            期限を守ってタスク完了なら「達成」、あきらめた・期限を過ぎたら「未達成」が目安です。
           </p>
         </div>
       )}

@@ -163,10 +163,10 @@ describe("judgeGuide", () => {
     });
   });
 
-  it("期限ありの単発タスクは期日を守って完了したかどうか", () => {
+  it("期限ありの単発タスクは期限を守って完了したかどうか", () => {
     expect(judgeGuide({ recurrenceType: "once", dueAt: "2026-10-12T09:00:00.000Z" })).toEqual({
-      achieved: "期日を守ってタスク完了",
-      missed: "あきらめた\nタスク完了したけど期日過ぎた",
+      achieved: "期限を守ってタスク完了",
+      missed: "あきらめた\nタスク完了したけど期限過ぎた",
     });
   });
 

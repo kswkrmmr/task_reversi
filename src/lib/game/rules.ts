@@ -136,8 +136,8 @@ export function judgeGuide(task: { recurrenceType: RecurrenceType; dueAt: string
   }
   if (task.dueAt) {
     return {
-      achieved: "期日を守ってタスク完了",
-      missed: "あきらめた\nタスク完了したけど期日過ぎた",
+      achieved: "期限を守ってタスク完了",
+      missed: "あきらめた\nタスク完了したけど期限過ぎた",
     };
   }
   return { achieved: "タスク完了", missed: "あきらめた" };
