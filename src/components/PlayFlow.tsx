@@ -55,7 +55,7 @@ export function PlayFlow({
             >
               <Stone color="white" className="h-8 w-8" />
               達成
-              <span className="px-2 text-xs font-normal text-ink-soft">{guide.achieved}</span>
+              <span className="px-2 text-xs font-normal whitespace-pre-line text-ink-soft">{guide.achieved}</span>
             </button>
             <button
               type="button"
@@ -64,7 +64,7 @@ export function PlayFlow({
             >
               <Stone color="black" className="h-8 w-8" />
               未達成
-              <span className="px-2 text-xs font-normal text-ink-soft">{guide.missed}</span>
+              <span className="px-2 text-xs font-normal whitespace-pre-line text-ink-soft">{guide.missed}</span>
             </button>
             <p className="col-span-2 text-center text-xs text-ink-soft">
               選び方は目安です。最後はあなたの判断で決めてください。

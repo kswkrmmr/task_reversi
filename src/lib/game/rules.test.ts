@@ -163,17 +163,17 @@ describe("judgeGuide", () => {
     });
   });
 
-  it("期限ありの単発タスクは期限までに終えたかどうか", () => {
+  it("期限ありの単発タスクは期日を守って完了したかどうか", () => {
     expect(judgeGuide({ recurrenceType: "once", dueAt: "2026-10-12T09:00:00.000Z" })).toEqual({
-      achieved: "期限までにやり終えた",
-      missed: "期限までに終わらなかった・やめることにした",
+      achieved: "期日を守ってタスク完了",
+      missed: "あきらめた\nタスク完了したけど期日過ぎた",
     });
   });
 
-  it("期限なしの単発タスクはやり終えたかどうか", () => {
+  it("期限なしの単発タスクは完了したか、あきらめたか", () => {
     expect(judgeGuide({ recurrenceType: "once", dueAt: null })).toEqual({
-      achieved: "やり終えた",
-      missed: "やめることにした",
+      achieved: "タスク完了",
+      missed: "あきらめた",
     });
   });
 });

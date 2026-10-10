@@ -126,7 +126,7 @@ function toJstIso(date: Date): string {
 
 // ---------- 判定の目安 ----------
 
-// 判定画面に出す「達成」「未達成」の選び方の目安。最終的な判断はユーザーに任せる。
+// 判定画面に出す「達成」「未達成」の選び方の目安（改行区切りで複数行）。最終的な判断はユーザーに任せる。
 export function judgeGuide(task: { recurrenceType: RecurrenceType; dueAt: string | null }): {
   achieved: string;
   missed: string;
@@ -136,9 +136,9 @@ export function judgeGuide(task: { recurrenceType: RecurrenceType; dueAt: string
   }
   if (task.dueAt) {
     return {
-      achieved: "期限までにやり終えた",
-      missed: "期限までに終わらなかった・やめることにした",
+      achieved: "期日を守ってタスク完了",
+      missed: "あきらめた\nタスク完了したけど期日過ぎた",
     };
   }
-  return { achieved: "やり終えた", missed: "やめることにした" };
+  return { achieved: "タスク完了", missed: "あきらめた" };
 }
