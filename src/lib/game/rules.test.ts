@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyBoard } from "@/lib/reversi/board";
 import {
-  canUndo,
+  canReplaceLastMove,
   checkCanJudge,
   stoneColorFor,
   summarizeGame,
@@ -55,21 +55,21 @@ describe("checkCanJudge", () => {
   });
 });
 
-describe("canUndo", () => {
-  it("進行中で配置があり、直前に取り消していなければ取り消せる", () => {
-    expect(canUndo({ status: "in_progress", undoUsed: false }, 3)).toBe(true);
+describe("canReplaceLastMove", () => {
+  it("進行中で配置があり、直前の手をまだ置き直していなければ置き直せる", () => {
+    expect(canReplaceLastMove({ status: "in_progress", undoUsed: false }, 3)).toBe(true);
   });
 
-  it("配置が1つもなければ取り消せない", () => {
-    expect(canUndo({ status: "in_progress", undoUsed: false }, 0)).toBe(false);
+  it("配置が1つもなければ置き直せない", () => {
+    expect(canReplaceLastMove({ status: "in_progress", undoUsed: false }, 0)).toBe(false);
   });
 
-  it("取り消しは連続1回まで", () => {
-    expect(canUndo({ status: "in_progress", undoUsed: true }, 3)).toBe(false);
+  it("置き直しは1手につき1回まで", () => {
+    expect(canReplaceLastMove({ status: "in_progress", undoUsed: true }, 3)).toBe(false);
   });
 
-  it("終了したゲームは取り消せない", () => {
-    expect(canUndo({ status: "finished", undoUsed: false }, 64)).toBe(false);
+  it("終了したゲームは置き直せない", () => {
+    expect(canReplaceLastMove({ status: "finished", undoUsed: false }, 64)).toBe(false);
   });
 });
 

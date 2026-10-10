@@ -7,13 +7,14 @@ import { requireUserId } from "@/lib/auth/session";
 import {
   createTask,
   GameError,
+  replaceLastMove,
   startNewGame,
   submitMove,
-  undoLastMove,
   updateTask,
   validateTaskInput,
   type SubmitMoveInput,
 } from "@/lib/game/service";
+import type { Position } from "@/lib/reversi/board";
 
 export type ActionState = { error: string | null };
 
@@ -73,11 +74,14 @@ export async function submitMoveAction(input: SubmitMoveInput): Promise<ActionSt
   redirect(outcome.finished ? `/games/${outcome.gameId}` : "/");
 }
 
-export async function undoLastMoveAction(_prev: ActionState): Promise<ActionState> {
+export async function replaceLastMoveAction(pos: Position): Promise<ActionState> {
   const userId = await requireUserId();
-  const state = await runAction(() => undoLastMove(userId));
+  const state = await runAction(() =>
+    replaceLastMove(userId, { row: Number(pos.row), col: Number(pos.col) }),
+  );
+  if (state.error) return state;
   revalidatePath("/", "layout");
-  return state;
+  redirect("/");
 }
 
 export async function startNewGameAction(): Promise<void> {

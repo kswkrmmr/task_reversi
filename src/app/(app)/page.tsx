@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { startNewGameAction } from "@/app/actions";
 import { ReversiBoard, StoneCounts } from "@/components/ReversiBoard";
-import { UndoButton } from "@/components/UndoButton";
+import { ReplaceLink } from "@/components/ReplaceLink";
 import { requireUserId } from "@/lib/auth/session";
 import { getCurrentGame, listFinishedGames, listTasks, type TaskListItem } from "@/lib/game/service";
 import { BOARD_SIZE } from "@/lib/reversi/board";
@@ -43,7 +43,7 @@ export default async function HomePage() {
                 直前: 「{game.lastMove.taskTitle}」
                 {game.lastMove.result === "achieved" ? "達成（白）" : "未達成（黒）"}
               </p>
-              {game.canUndo && <UndoButton description={game.lastMove.taskTitle} />}
+              {game.canReplaceLastMove && <ReplaceLink />}
             </div>
           )}
         </section>

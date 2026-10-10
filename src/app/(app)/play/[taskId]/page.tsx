@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PlayFlow } from "@/components/PlayFlow";
-import { UndoButton } from "@/components/UndoButton";
+import { ReplaceLink } from "@/components/ReplaceLink";
 import { requireUserId } from "@/lib/auth/session";
 import { getCurrentGame, listTasks } from "@/lib/game/service";
 
@@ -33,9 +33,9 @@ export default async function PlayPage({ params }: PageProps<"/play/[taskId]">) 
         moves={game.moves}
         lastMove={game.lastMove}
       />
-      {game.canUndo && game.lastMove && (
+      {game.canReplaceLastMove && (
         <div className="flex justify-center">
-          <UndoButton description={game.lastMove.taskTitle} />
+          <ReplaceLink />
         </div>
       )}
     </div>

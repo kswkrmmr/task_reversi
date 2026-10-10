@@ -29,8 +29,9 @@ export function checkCanJudge(
   return { ok: true };
 }
 
-// 取り消しは直前の1手だけ。取り消した直後にさらに前の手を取り消すことはできない。
-export function canUndo(
+// 置き直しは直前の1手だけ・1手につき1回まで（判定はそのまま、石の位置だけを変える）。
+// Game.undoUsed は「直前の手を置き直し済みか」を表す（列名は初期実装の名残）。
+export function canReplaceLastMove(
   game: { status: GameStatus; undoUsed: boolean },
   placementCount: number,
 ): boolean {

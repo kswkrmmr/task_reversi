@@ -12,7 +12,7 @@ import {
   type Position,
 } from "@/lib/reversi/board";
 import {
-  canUndo,
+  canReplaceLastMove,
   checkCanJudge,
   getJstTodayString,
   stoneColorFor,
@@ -101,7 +101,7 @@ export type GameView = {
   moves: Move[];
   board: Board;
   summary: GameSummary;
-  canUndo: boolean;
+  canReplaceLastMove: boolean;
   lastMove: (Move & { taskTitle: string; result: AttemptResult }) | null;
 };
 
@@ -131,7 +131,7 @@ async function loadGameView(
     moves,
     board,
     summary: summarizeGame(results, board),
-    canUndo: canUndo(game, moves.length),
+    canReplaceLastMove: canReplaceLastMove(game, moves.length),
     lastMove: last
       ? {
           row: last.row,
@@ -245,26 +245,40 @@ export async function submitMove(
   }
 }
 
-// 直前の1手（配置と、それに対応するタスク判定）を取り消す。
-export async function undoLastMove(userId: string): Promise<void> {
-  await db.transaction(async (tx) => {
-    const game = await tx.orm.public.Game.where({ userId, status: "in_progress" }).first();
-    if (!game) throw new GameError("進行中のゲームがありません");
+// 直前の1手の石を別のマスに置き直す。タスクの判定（石の色）はそのまま。
+// 元の石の削除と新しい位置への配置を1つの更新で行うので、「石が置かれていない」状態はDBに生まれない。
+export async function replaceLastMove(userId: string, pos: Position): Promise<void> {
+  try {
+    await db.transaction(async (tx) => {
+      const game = await tx.orm.public.Game.where({ userId, status: "in_progress" }).first();
+      if (!game) throw new GameError("進行中のゲームがありません");
 
-    const last = await tx.orm.public.StonePlacement.where({ gameId: game.id })
-      .orderBy((p) => p.sequenceNumber.desc())
-      .first();
-    if (!canUndo(game, last ? 1 : 0) || !last) {
-      throw new GameError("取り消せる操作がありません");
-    }
+      const placements = await tx.orm.public.StonePlacement.where({ gameId: game.id })
+        .orderBy((p) => p.sequenceNumber.asc())
+        .all();
+      const last = placements.at(-1);
+      if (!last || !canReplaceLastMove(game, placements.length)) {
+        throw new GameError("置き直せる石がありません");
+      }
+      if (last.row === pos.row && last.col === pos.col) {
+        throw new GameError("元と同じマスです。別のマスを選んでください");
+      }
+      try {
+        applyMove(replay(placements.slice(0, -1)), pos, last.color);
+      } catch {
+        throw new GameError("そのマスには置けません");
+      }
 
-    // undoUsed=false の場合だけ更新することで、同時に2回取り消されるのを防ぐ。
-    const claimed = await tx.orm.public.Game.where({ id: game.id, undoUsed: false }).updateAndCount({
-      undoUsed: true,
+      // undoUsed=false の場合だけ更新することで、同時に2回置き直されるのを防ぐ。
+      const claimed = await tx.orm.public.Game.where({ id: game.id, undoUsed: false }).updateAndCount({
+        undoUsed: true,
+      });
+      if (claimed === 0) throw new GameError("置き直せる石がありません");
+
+      await tx.orm.public.StonePlacement.where({ id: last.id }).update({ row: pos.row, col: pos.col });
     });
-    if (claimed === 0) throw new GameError("取り消せる操作がありません");
-
-    // TaskAttempt を消すと StonePlacement もカスケード削除される。
-    await tx.orm.public.TaskAttempt.where({ id: last.taskAttemptId }).delete();
-  });
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new GameError(CONFLICT_MESSAGE);
+    throw err;
+  }
 }

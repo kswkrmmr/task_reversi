@@ -9,9 +9,9 @@ import {
   getGame,
   listFinishedGames,
   listTasks,
+  replaceLastMove,
   startNewGame,
   submitMove,
-  undoLastMove,
   updateTask,
 } from "./service";
 
@@ -143,50 +143,74 @@ describe("submitMove", () => {
   });
 });
 
-describe("undoLastMove", () => {
-  it("直前の配置と反転を戻し、タスクを未判定に戻す", async () => {
+describe("replaceLastMove", () => {
+  // 白(3,3) → 黒(3,4) → 白(3,5)〔(3,4)を反転〕→ 黒(2,3) → 黒(4,3)〔(3,3)を反転〕と置いた状態を作る。
+  // 5手目の黒は (4,3) と (4,5) のどちらにも置ける（(4,5) なら (3,4) を反転する）。
+  async function setup() {
     await startNewGame(user);
     const tasks = await Promise.all(
-      [1, 2, 3].map((i) => createTask(user, { title: `t${i}`, recurrenceType: "once" })),
+      [1, 2, 3, 4, 5, 6].map((i) => createTask(user, { title: `t${i}`, recurrenceType: "once" })),
     );
-    await submitMove(user, { taskId: tasks[0].id, result: "achieved", row: 0, col: 0 }, TODAY);
-    await submitMove(user, { taskId: tasks[1].id, result: "missed", row: 0, col: 1 }, TODAY);
-    await submitMove(user, { taskId: tasks[2].id, result: "achieved", row: 0, col: 2 }, TODAY);
+    const moves = [
+      ["achieved", 3, 3],
+      ["missed", 3, 4],
+      ["achieved", 3, 5],
+      ["missed", 2, 3],
+      ["missed", 4, 3],
+    ] as const;
+    for (const [i, [result, row, col]] of moves.entries()) {
+      await submitMove(user, { taskId: tasks[i].id, result, row, col }, TODAY);
+    }
+    return tasks;
+  }
 
-    await undoLastMove(user);
+  it("直前の石だけを別のマスへ移し、反転を計算し直す。判定はそのまま", async () => {
+    const tasks = await setup();
+    const before = (await getCurrentGame(user))!.board;
+    expect([before[3][3], before[3][4]]).toEqual(["black", "white"]);
+
+    await replaceLastMove(user, { row: 4, col: 5 });
 
     const game = (await getCurrentGame(user))!;
-    expect(game.board[0].slice(0, 3)).toEqual(["white", "black", null]);
-    expect(game.summary.judged).toBe(2);
-    expect(game.canUndo).toBe(false);
+    expect(game.board[4][3]).toBeNull();
+    expect(game.board[4][5]).toBe("black");
+    // 元の位置で反転していた (3,3) は白に戻り、新しい位置で (3,4) が反転する
+    expect([game.board[3][3], game.board[3][4]]).toEqual(["white", "black"]);
+    expect(game.moves).toHaveLength(5);
+    expect(game.summary).toMatchObject({ achieved: 2, missed: 3, judged: 5 });
+    expect(game.lastMove).toMatchObject({ row: 4, col: 5, taskTitle: "t5", result: "missed" });
+    expect(game.canReplaceLastMove).toBe(false);
 
-    // 取り消したタスクは再判定でき、結果を変えてやり直せる
+    // 判定は残っているので、同じ単発タスクを判定し直すことはできない
     const items = await listTasks(user, TODAY);
-    expect(items.find((t) => t.id === tasks[2].id)?.judgeable).toBe(true);
-    await submitMove(user, { taskId: tasks[2].id, result: "missed", row: 1, col: 1 }, TODAY);
-    expect((await getCurrentGame(user))!.board[1][1]).toBe("black");
+    expect(items.find((t) => t.id === tasks[4].id)?.judgeable).toBe(false);
   });
 
-  it("取り消しは連続1回まで。次の手を置けば再び取り消せる", async () => {
-    await startNewGame(user);
-    const tasks = await Promise.all(
-      [1, 2, 3].map((i) => createTask(user, { title: `t${i}`, recurrenceType: "once" })),
-    );
-    await submitMove(user, { taskId: tasks[0].id, result: "achieved", row: 0, col: 0 }, TODAY);
-    await submitMove(user, { taskId: tasks[1].id, result: "achieved", row: 0, col: 1 }, TODAY);
+  it("置き直しは1手につき1回まで。次の手を置けば再び置き直せる", async () => {
+    const tasks = await setup();
+    await replaceLastMove(user, { row: 4, col: 5 });
+    await expect(replaceLastMove(user, { row: 4, col: 3 })).rejects.toThrow("置き直せる石がありません");
 
-    await undoLastMove(user);
-    await expect(undoLastMove(user)).rejects.toThrow("取り消せる操作がありません");
-
-    await submitMove(user, { taskId: tasks[2].id, result: "achieved", row: 1, col: 1 }, TODAY);
-    expect((await getCurrentGame(user))!.canUndo).toBe(true);
-    await undoLastMove(user);
-    expect((await getCurrentGame(user))!.moves).toHaveLength(1);
+    const game = (await getCurrentGame(user))!;
+    const [cell] = placeableCells(game.board, "white");
+    await submitMove(user, { taskId: tasks[5].id, result: "achieved", ...cell }, TODAY);
+    expect((await getCurrentGame(user))!.canReplaceLastMove).toBe(true);
   });
 
-  it("配置がなければ取り消せない", async () => {
+  it("ルール上置けないマス・元と同じマスには置き直せず、置き直しの権利も消費しない", async () => {
+    await setup();
+    await expect(replaceLastMove(user, { row: 7, col: 7 })).rejects.toThrow("そのマスには置けません");
+    await expect(replaceLastMove(user, { row: 3, col: 4 })).rejects.toThrow("そのマスには置けません");
+    await expect(replaceLastMove(user, { row: 4, col: 3 })).rejects.toThrow("元と同じマスです");
+
+    const game = (await getCurrentGame(user))!;
+    expect(game.board[4][3]).toBe("black");
+    expect(game.canReplaceLastMove).toBe(true);
+  });
+
+  it("配置がなければ置き直せない", async () => {
     await startNewGame(user);
-    await expect(undoLastMove(user)).rejects.toThrow("取り消せる操作がありません");
+    await expect(replaceLastMove(user, { row: 0, col: 0 })).rejects.toThrow("置き直せる石がありません");
   });
 });
 
@@ -204,7 +228,7 @@ describe("ゲーム終了と新しいゲーム", () => {
     return gameId;
   }
 
-  it("64マス埋まるとゲームが終了し、結果を集計する。終了後は取り消せない", async () => {
+  it("64マス埋まるとゲームが終了し、結果を集計する。終了後は置き直せない", async () => {
     const gameId = await fillBoard(user);
 
     expect(await getCurrentGame(user)).toBeNull();
@@ -213,8 +237,8 @@ describe("ゲーム終了と新しいゲーム", () => {
     expect(game.finishedAt).not.toBeNull();
     expect(game.summary).toMatchObject({ achieved: 48, missed: 16, judged: 64, achievementRate: 75 });
     expect(game.summary.white + game.summary.black).toBe(64);
-    expect(game.canUndo).toBe(false);
-    await expect(undoLastMove(user)).rejects.toThrow("進行中のゲームがありません");
+    expect(game.canReplaceLastMove).toBe(false);
+    await expect(replaceLastMove(user, { row: 0, col: 0 })).rejects.toThrow("進行中のゲームがありません");
   });
 
   it("新しいゲームは空の盤面で始まり、過去の結果とタスクは保持される", async () => {
@@ -262,13 +286,13 @@ describe("ユーザーごとのアクセス制御", () => {
     expect(otherItems[0]).toMatchObject({ title: "他人のタスク", active: true, judgeable: true });
   });
 
-  it("他ユーザーのゲームの取り消しはできない", async () => {
+  it("他ユーザーのゲームの石は置き直せない", async () => {
     const other = newUser();
     await startNewGame(other);
     const t = await createTask(other, { title: "x", recurrenceType: "once" });
     await submitMove(other, { taskId: t.id, result: "achieved", row: 0, col: 0 }, TODAY);
 
-    await expect(undoLastMove(user)).rejects.toThrow("進行中のゲームがありません");
+    await expect(replaceLastMove(user, { row: 1, col: 1 })).rejects.toThrow("進行中のゲームがありません");
     expect((await getCurrentGame(other))!.moves).toHaveLength(1);
   });
 });
