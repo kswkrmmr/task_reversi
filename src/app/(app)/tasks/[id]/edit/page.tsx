@@ -22,6 +22,7 @@ export default async function EditTaskPage({ params }: PageProps<"/tasks/[id]/ed
           recurrenceType: task.recurrenceType,
           active: task.active,
           dueAt: task.dueAt,
+          judged: task.judged,
         }}
         submitLabel="保存する"
       />

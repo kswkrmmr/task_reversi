@@ -343,6 +343,27 @@ describe("タスクの期限・削除・分類", () => {
     expect((await getTask(user, task.id))?.active).toBe(true);
   });
 
+  it("判定済みのタスクは種類を変えられない（名前・期限・一時停止は変えられる）", async () => {
+    await startNewGame(user);
+    const once = await createTask(user, { title: "単発", recurrenceType: "once" });
+    const daily = await createTask(user, { title: "毎日", recurrenceType: "daily" });
+    await submitMove(user, { taskId: once.id, result: "achieved", row: 0, col: 0 }, TODAY);
+    await submitMove(user, { taskId: daily.id, result: "achieved", row: 0, col: 1 }, TODAY);
+
+    await expect(
+      updateTask(user, once.id, { title: "単発", recurrenceType: "daily", active: true }),
+    ).rejects.toThrow("判定済みのタスクは種類を変えられません");
+    await expect(
+      updateTask(user, daily.id, { title: "毎日", recurrenceType: "once", active: true }),
+    ).rejects.toThrow("判定済みのタスクは種類を変えられません");
+
+    await updateTask(user, once.id, { title: "単発（改名）", recurrenceType: "once", active: true });
+    await updateTask(user, daily.id, { title: "毎日", recurrenceType: "daily", active: false });
+    const items = await listTasks(user, TODAY);
+    expect(items.find((t) => t.id === once.id)).toMatchObject({ title: "単発（改名）", category: "judged" });
+    expect(items.find((t) => t.id === daily.id)).toMatchObject({ recurrenceType: "daily", category: "paused" });
+  });
+
   it("削除できるのは未判定の単発タスクだけ", async () => {
     await startNewGame(user);
     const fresh = await createTask(user, { title: "未判定", recurrenceType: "once" });

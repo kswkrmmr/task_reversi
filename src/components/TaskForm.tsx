@@ -13,7 +13,14 @@ export function TaskForm({
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   // 編集時のみ渡す。一時停止の切り替えは編集時だけ表示する（一時停止中 = active が false）。
-  defaults?: { title: string; recurrenceType: RecurrenceType; active: boolean; dueAt: string | null };
+  // judged: 判定済みのタスクは種類を変えられない（サーバー側でも弾く）。
+  defaults?: {
+    title: string;
+    recurrenceType: RecurrenceType;
+    active: boolean;
+    dueAt: string | null;
+    judged: boolean;
+  };
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -21,6 +28,7 @@ export function TaskForm({
     defaults?.recurrenceType ?? "once",
   );
   const [due, setDue] = useState(defaults?.dueAt ? isoToJstLocalInput(defaults.dueAt) : "");
+  const typeLocked = defaults?.judged ?? false;
 
   return (
     <form action={formAction} className="space-y-5">
@@ -38,6 +46,8 @@ export function TaskForm({
 
       <fieldset>
         <legend className="text-sm font-bold">種類</legend>
+        {/* disabled のラジオは送信されないので、固定中は hidden で送る */}
+        {typeLocked && <input type="hidden" name="recurrenceType" value={recurrenceType} />}
         <div className="mt-1 grid grid-cols-2 gap-2">
           {(
             [
@@ -47,7 +57,7 @@ export function TaskForm({
           ).map(([value, label, hint]) => (
             <label
               key={value}
-              className="flex cursor-pointer flex-col rounded-md border border-line bg-white px-3 py-2 has-[:checked]:border-felt has-[:checked]:ring-2 has-[:checked]:ring-felt/30"
+              className="flex cursor-pointer flex-col rounded-md border border-line bg-white px-3 py-2 has-[:checked]:border-felt has-[:checked]:ring-2 has-[:checked]:ring-felt/30 has-[:disabled]:cursor-not-allowed has-[:disabled:not(:checked)]:opacity-50"
             >
               <span className="flex items-center gap-2">
                 <input
@@ -55,6 +65,7 @@ export function TaskForm({
                   name="recurrenceType"
                   value={value}
                   checked={recurrenceType === value}
+                  disabled={typeLocked}
                   onChange={() => setRecurrenceType(value)}
                 />
                 <span className="font-bold">{label}</span>
@@ -63,6 +74,9 @@ export function TaskForm({
             </label>
           ))}
         </div>
+        {typeLocked && (
+          <p className="mt-1 text-xs text-ink-soft">判定済みのタスクは種類を変えられません。</p>
+        )}
       </fieldset>
 
       {recurrenceType === "once" && (

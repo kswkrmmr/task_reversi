@@ -74,17 +74,23 @@ export async function createTask(userId: string, input: TaskInput) {
 }
 
 // 単発タスクは一時停止しないので、単発に変えたとき（または単発のまま保存したとき）は active を true に戻す。
+// 一度でも判定したタスクは種類を変えられない（単発→毎日で再判定できる、などの抜け道になるため）。
 export async function updateTask(
   userId: string,
   taskId: string,
   input: TaskInput & { active: boolean },
 ) {
   const active = input.recurrenceType === "once" ? true : input.active;
-  const count = await db.orm.public.Task.where({ id: taskId, userId }).updateAndCount({
-    ...taskColumns(input),
-    active,
+  await db.transaction(async (tx) => {
+    const task = await tx.orm.public.Task.where({ id: taskId, userId })
+      .include("attempts", (a) => a.select("id"))
+      .first();
+    if (!task) throw new GameError("タスクが見つかりません");
+    if (task.attempts.length > 0 && task.recurrenceType !== input.recurrenceType) {
+      throw new GameError("判定済みのタスクは種類を変えられません");
+    }
+    await tx.orm.public.Task.where({ id: task.id }).update({ ...taskColumns(input), active });
   });
-  if (count === 0) throw new GameError("タスクが見つかりません");
 }
 
 // 削除できるのは、まだ判定していない単発タスクだけ。
