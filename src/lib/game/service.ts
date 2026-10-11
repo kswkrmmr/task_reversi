@@ -249,6 +249,15 @@ export async function listFinishedGames(userId: string): Promise<GameView[]> {
   return views.filter((v): v is GameView => v !== null);
 }
 
+// 直近に終了したゲームのID（なければ null）。盤面や判定は読み込まない。
+export async function getLatestFinishedGameId(userId: string): Promise<string | null> {
+  const game = await db.orm.public.Game.where({ userId, status: "finished" })
+    .select("id")
+    .orderBy((g) => g.finishedAt.desc())
+    .first();
+  return game?.id ?? null;
+}
+
 // 進行中のゲームがあればそれを返し、なければ新しく始める。
 export async function startNewGame(userId: string): Promise<string> {
   const existing = await db.orm.public.Game.where({ userId, status: "in_progress" }).first();

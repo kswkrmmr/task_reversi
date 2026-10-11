@@ -8,6 +8,7 @@ import {
   GameError,
   getCurrentGame,
   getGame,
+  getLatestFinishedGameId,
   getTask,
   listFinishedGames,
   listTasks,
@@ -245,6 +246,7 @@ describe("ゲーム終了と新しいゲーム", () => {
   });
 
   it("新しいゲームは空の盤面で始まり、過去の結果とタスクは保持される", async () => {
+    expect(await getLatestFinishedGameId(user)).toBeNull();
     const oldId = await fillBoard(user);
     const daily = await createTask(user, { title: "毎日コード", recurrenceType: "daily" });
 
@@ -257,6 +259,8 @@ describe("ゲーム終了と新しいゲーム", () => {
     const history = await listFinishedGames(user);
     expect(history.map((g) => g.id)).toEqual([oldId]);
     expect(history[0].moves).toHaveLength(64);
+    expect(await getLatestFinishedGameId(user)).toBe(oldId);
+    expect(await getLatestFinishedGameId(newUser())).toBeNull();
 
     const items = await listTasks(user, TODAY);
     expect(items).toHaveLength(65);
