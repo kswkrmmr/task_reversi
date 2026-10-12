@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { auth } from "@/auth";
 import { signOutAction } from "@/app/actions";
 import { TabBar } from "@/components/TabBar";
 import { requireUserId } from "@/lib/auth/session";
@@ -7,7 +6,6 @@ import { isGuestUserId } from "@/lib/guest";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const userId = await requireUserId();
-  const session = await auth();
   const isGuest = isGuestUserId(userId);
 
   return (
@@ -19,7 +17,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             <form action={signOutAction}>
-              <button type="submit" className="text-ink-soft hover:underline" title={session?.user?.name ?? ""}>
+              <button type="submit" className="text-ink-soft hover:underline">
                 {isGuest ? "試用をやめる" : "ログアウト"}
               </button>
             </form>
