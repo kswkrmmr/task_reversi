@@ -2,6 +2,7 @@
 // 盤面はDBに保存せず、配置履歴を replay して毎回再構築する。
 
 export const BOARD_SIZE = 8;
+export const CELL_COUNT = BOARD_SIZE * BOARD_SIZE;
 
 export type Color = "white" | "black";
 export type Cell = Color | null;
@@ -75,7 +76,7 @@ function emptyCells(board: Board): Position[] {
 // 盤面に石があり空きマスもあれば、3 の候補は必ず1つ以上存在するため詰まらない。
 export function placeableCells(board: Board, color: Color): Position[] {
   const empties = emptyCells(board);
-  if (empties.length === BOARD_SIZE * BOARD_SIZE) return empties;
+  if (empties.length === CELL_COUNT) return empties;
 
   const flipping = empties.filter((p) => computeFlips(board, p, color).length > 0);
   if (flipping.length > 0) return flipping;

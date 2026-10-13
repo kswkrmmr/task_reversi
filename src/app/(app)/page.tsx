@@ -1,13 +1,12 @@
 import Link from "next/link";
+import { Folded } from "@/components/Folded";
 import { NoGamePanel } from "@/components/NoGamePanel";
 import { Stone } from "@/components/ReversiBoard";
 import { ShowMoreTasks } from "@/components/ShowMoreTasks";
 import { TaskRows } from "@/components/TaskRows";
 import { requireUserId } from "@/lib/auth/session";
 import { getCurrentGame, listTasks, type TaskListItem } from "@/lib/game/service";
-import { BOARD_SIZE } from "@/lib/reversi/board";
-
-const TOTAL = BOARD_SIZE * BOARD_SIZE;
+import { CELL_COUNT } from "@/lib/reversi/board";
 
 // タスクタブ（ホーム）。盤面は「盤面」タブに分け、ここでは1行の要約だけを出す。
 export default async function TasksPage() {
@@ -31,7 +30,7 @@ export default async function TasksPage() {
               <span className="font-bold tabular-nums">{game.summary.black}</span>
             </span>
             <span className="text-ink-soft">
-              {game.moves.length} / {TOTAL} 手
+              {game.moves.length} / {CELL_COUNT} 手
             </span>
           </span>
           <span className="text-ink-soft">盤面を見る ›</span>
@@ -102,24 +101,4 @@ function sortOpenTasks(tasks: TaskListItem[]): TaskListItem[] {
     if (b.dueAt) return 1;
     return Number(b.judgeable) - Number(a.judgeable);
   });
-}
-
-function Folded({
-  label,
-  count,
-  children,
-}: {
-  label: string;
-  count: number;
-  children: React.ReactNode;
-}) {
-  if (count === 0) return null;
-  return (
-    <details className="group">
-      <summary className="cursor-pointer list-none text-sm text-ink-soft select-none [&::-webkit-details-marker]:hidden">
-        <span className="inline-block transition-transform group-open:rotate-90">▶</span> {label}（{count}件）
-      </summary>
-      <div className="mt-2">{children}</div>
-    </details>
-  );
 }

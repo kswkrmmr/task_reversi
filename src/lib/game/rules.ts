@@ -5,6 +5,10 @@ export type AttemptResult = "achieved" | "missed";
 export type RecurrenceType = "once" | "daily";
 export type GameStatus = "in_progress" | "finished";
 
+// 画面に出す表示名。
+export const RECURRENCE_LABELS: Record<RecurrenceType, string> = { once: "単発", daily: "毎日" };
+export const RESULT_LABELS: Record<AttemptResult, string> = { achieved: "達成", missed: "未達成" };
+
 export function stoneColorFor(result: AttemptResult): Color {
   return result === "achieved" ? "white" : "black";
 }

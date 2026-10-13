@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { describeDue } from "@/lib/game/rules";
+import { describeDue, RECURRENCE_LABELS, RESULT_LABELS } from "@/lib/game/rules";
 import type { TaskListItem } from "@/lib/game/service";
 
 // タスク一覧の行。フックを持たないので、サーバー・クライアントどちらのコンポーネントからも使える。
@@ -25,14 +25,14 @@ export function TaskRows({
               <p className="truncate font-bold">{t.title}</p>
               <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
                 <span className="rounded bg-paper px-1.5 py-0.5">
-                  {t.recurrenceType === "once" ? "単発" : "毎日"}
+                  {RECURRENCE_LABELS[t.recurrenceType]}
                 </span>
                 {due && (
                   <span className={due.overdue ? "font-bold text-danger" : ""}>{due.label}</span>
                 )}
                 {t.result && (
                   <span className={t.result === "achieved" ? "font-bold text-felt" : ""}>
-                    {t.result === "achieved" ? "達成" : "未達成"}
+                    {RESULT_LABELS[t.result]}
                   </span>
                 )}
                 {showReason && t.reason && <span>{t.reason}</span>}
