@@ -105,7 +105,7 @@ export function PlayFlow({
           <ReversiBoard board={board} lastMove={lastMove} />
           <p className="text-center text-sm">
             <Link href="/" className="text-ink-soft underline underline-offset-2">
-              ホームに戻る
+              タスク一覧に戻る
             </Link>
           </p>
         </>

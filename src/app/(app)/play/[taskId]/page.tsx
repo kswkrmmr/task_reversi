@@ -20,7 +20,7 @@ export default async function PlayPage({ params }: PageProps<"/play/[taskId]">) 
         <p className="font-bold">{task.title}</p>
         <p className="text-sm text-ink-soft">{task.reason}</p>
         <Link href="/" className="text-sm underline underline-offset-2">
-          ホームに戻る
+          タスク一覧に戻る
         </Link>
       </div>
     );

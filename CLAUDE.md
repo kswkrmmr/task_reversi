@@ -33,7 +33,7 @@
 - 石を置いたあとはタスクタブへ、置き直しのあとは盤面タブへ戻る。ゲーム終了時は結果画面。
 
 ## 設計の要点
-- 盤面ロジックは `src/lib/reversi/board.ts`、判定・取り消し・集計ルールは `src/lib/game/rules.ts`。どちらもUI/DB非依存の純粋関数。
+- 盤面ロジックは `src/lib/reversi/board.ts`、判定・置き直し・集計ルールは `src/lib/game/rules.ts`。どちらもUI/DB非依存の純粋関数。
 - 盤面はDBに保存せず、`StonePlacement` を `sequenceNumber` 順に `replay` して毎回再構築する。
 - タスク判定と石の配置は `submitMove` の1トランザクションでまとめて保存する。判定結果は配置確定までクライアントの状態でしか持たない
   （＝「判定したが配置していない」状態はDBに存在しない）。

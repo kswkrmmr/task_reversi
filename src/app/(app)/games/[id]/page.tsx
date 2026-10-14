@@ -18,7 +18,7 @@ export default async function GameResultPage({ params }: PageProps<"/games/[id]"
     return (
       <div className="space-y-3 text-center">
         <p>このゲームはまだ進行中です。</p>
-        <Link href="/" className="text-sm underline underline-offset-2">ホームに戻る</Link>
+        <Link href="/" className="text-sm underline underline-offset-2">タスク一覧に戻る</Link>
       </div>
     );
   }

@@ -1,4 +1,4 @@
-// タスク判定・取り消し・集計のルール。DBに依存しない純粋関数のみを置く。
+// タスク判定・置き直し・集計のルール。DBに依存しない純粋関数のみを置く。
 import { countStones, type Board, type Color } from "@/lib/reversi/board";
 
 export type AttemptResult = "achieved" | "missed";

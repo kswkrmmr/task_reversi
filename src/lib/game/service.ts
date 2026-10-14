@@ -170,7 +170,6 @@ export async function listTasks(
 export type GameView = {
   id: string;
   status: GameStatus;
-  undoUsed: boolean;
   startedAt: string;
   finishedAt: string | null;
   moves: Move[];
@@ -207,7 +206,6 @@ async function loadGameView(
   return {
     id: game.id,
     status: game.status,
-    undoUsed: game.undoUsed,
     startedAt: game.startedAt,
     finishedAt: game.finishedAt,
     moves,
